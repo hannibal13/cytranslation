@@ -1,0 +1,439 @@
+<?php
+
+/**
+ * @file
+ *
+ * Provide DVC custom functional
+ *
+ */
+
+/**
+ * Implements hook_init().
+ */
+function dvc_init() {
+  if (!isset($_GET['tid_source']) && !isset($_GET['tid_target'])) {
+    variable_del('term_source');
+    variable_del('term_target');
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function dvc_menu() {
+
+  $items['popup/%ctools_js'] = array(
+    'title' => 'Callback',
+    'page arguments' => array(1),
+    'access callback' => TRUE,
+    'page callback' => 'dvc_order_page_callback',
+    'type' => MENU_CALLBACK,
+  );
+  $items['order-form'] = array(
+    'title' => 'Callback',
+    'page callback' => 'order_form',
+    'page arguments' => array(),
+    'access arguments' => array(''),
+  );
+  $items['admin/config/custom/variables'] = array(
+    'title'            => 'Variables BO',
+    'description'      => 'Different variables.',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('dvc_admin_common_variables_config_form'),
+    'access arguments' => array('access administration pages'),
+    'type'             => MENU_NORMAL_ITEM,
+  );
+  $items['calc-price/nojs'] = array(
+    'title' => '',
+    'page callback' => 'dvc_calc_price',
+    'page arguments' => array(1),
+    'access callback' => TRUE,
+  );
+  $items['calc-price/ajax'] = array(
+    'delivery callback' => 'ajax_deliver',
+    'access callback' => TRUE,
+    'theme callback' => 'ajax_base_page_theme'
+  ) + $items['calc-price/nojs'];
+
+  return $items;
+}
+
+/**
+ * Ajax callback function.
+ */
+function dvc_calc_price($ajax) {
+  $is_ajax = $ajax === 'ajax';
+  if ($is_ajax) {
+    $commands = array();
+    if (isset($_GET['tid_source'])) {
+      $tid_source = $_GET['tid_source'];
+      $term_source = taxonomy_term_load($tid_source);
+      $term_source = i18n_taxonomy_localize_terms($term_source);
+      $term_name_source = $term_source->name;
+      variable_set('term_source', $term_source);
+      $commands[] = ajax_command_remove('.data-price-source');
+      $commands[] = ajax_command_after('#tab-calculator-step-1', '<span class="data-price-source"><span>'. $term_name_source .'</span></span>');
+    }
+    if (isset($_GET['tid_target'])) {
+      $tid_target = $_GET['tid_target'];
+      $term_target = taxonomy_term_load($tid_target);
+      $term_target = i18n_taxonomy_localize_terms($term_target);
+      $term_name_target = $term_target->name;
+      variable_set('term_target', $term_target);
+      $commands[] = ajax_command_remove('.data-price-target');
+      $commands[] = ajax_command_after('#tab-calculator-step-2', '<span class="data-price-target"><span>'. $term_name_target .'</span></span>');
+    }
+
+    $term_source = variable_get('term_source');
+    $term_target = variable_get('term_target');
+    if (isset($term_target) && isset($term_source->field_price_index['und'])) {
+      foreach ($term_source->field_price_index['und'] as $index) {
+        $field_collection = field_collection_item_load($index['value']);
+        if ($field_collection->field_lang_price['und'][0]['tid'] == $term_target->tid && $term_source->tid !== $term_target->tid) {
+          $price = $field_collection->field_lang_full_price['und'][0]['value'];
+          break;
+        } else {
+          $price = 0;
+        }
+      }
+      $commands[] = ajax_command_remove('.tr-price');
+      $commands[] = ajax_command_after('#tab-calculator-step-2', '<span class="tr-price" data-price="'. $price .'"></span>');
+    } else {
+      $price = 0;
+      $commands[] = ajax_command_remove('.tr-price');
+      $commands[] = ajax_command_after('#tab-calculator-step-2', '<span class="tr-price" data-price="'. $price .'"></span>');
+    }
+    return array(
+      '#type' => 'ajax',
+      '#commands' => $commands,
+    );
+  }
+}
+
+/**
+ * Calculaor form.
+ */
+function dvc_quicktabs_form($form, &$form_state) {
+  $vars = variable_get("dvc_admin_common_variables", array());
+  $form['symbol'] = array(
+    '#type' => 'textfield',
+    '#size' => 10,
+    '#maxlength' => 10,
+    '#default_value' => 100,
+    //'#suffix' => '<span>'. t('with spaces') .'</span>'
+  );
+
+  for ($i=0; $i <= 3; $i++) {
+    $form['item'. $i] = array(
+      '#type' => 'item',
+      '#title' => isset($vars['scripts']['item_symbol_'. $i]) ? $vars['scripts']['item_symbol_'. $i] : '',
+      '#markup' => isset($vars['scripts']['item_text_'. $i]) ? '<br>' .t($vars['scripts']['item_text_'. $i]) : '',
+    );
+  }
+
+  // disabled submit form
+  $form['#attributes'] = array('onsubmit' => 'return false');
+
+  return $form;
+}
+
+/**
+ * "Contact us" form.
+ */
+
+// not worked
+
+//function dvc_quicktabs_order_form($form, &$form_state) {
+//  $form['message'] = array(
+//    '#type' => 'textarea',
+//    '#title' => t('Message'),
+//  );
+//  $form['name'] = array(
+//    '#type' => 'textfield',
+//    '#title' => t('Name'),
+//  );
+//  $form['contact'] = array(
+//    '#type' => 'textfield',
+//    '#title' => t('Contact'),
+//    '#description' => t('Phone number or e-mail to contact you'),
+//  );
+//  $form['attachment'] = array(
+//    '#type' => 'file',
+//    '#name' => 'files[]',
+//    '#description' => t('Text files, documents, archives'),
+//    //'#upload_validators'  => array("file_validate_extensions" => array("doc docx pdf txt rtf zip tar jpg png")),
+//    //'#upload_validators'  => array('file_validate_size' => array(MAX_FILE_SIZE*31457820*31457820)),
+//    '#attributes' => array('multiple' => 'multiple'),
+//    '#prefix' => '<div class="form-item form-type-file form-item-files-attachment">',
+//    '#suffix' => '</div>'
+//  );
+//  $form['submit'] = array(
+//    '#type' => 'submit',
+//    '#value' => t('Send'),
+//    '#suffix' => '<span>' . t('or') . '</span>',
+//  );
+//  $form['cancel'] = array(
+//    '#markup' => '<span class="cancel"><a onClick="Drupal.CTools.Modal.dismiss()">'. t('Cancel') .'</a></span>',
+//  );
+//
+//  return $form;
+//}
+
+/**
+ * Validate callback.
+ */
+// not worked
+//function dvc_quicktabs_order_form_validate($form, &$form_state) {
+//  $num_files = count($_FILES['files']['name']);
+//  for ($i = 0; $i < $num_files; $i++) {
+//    if ($file = file_save_upload($i, array(), 'public://')) {
+//      $form_state['values']['attachment'][$i] = $file;
+//    }
+//  }
+//}
+
+/**
+ * Form submit.
+ */
+function dvc_quicktabs_order_form_submit($form, &$form_state) {
+  //watchdog('debug', '<pre>'. print_r($form_state['values'], TRUE) .'</pre>');
+  $vars = variable_get("dvc_admin_common_variables", array());
+  $module = 'dvc';
+  $key = 'callback_letter';
+  $to = $vars['email']['callback'];
+  $params = array();
+  $body = '<b>'. t('Message: ') .'</b> '. $form_state['values']['message'] .'<br>';
+  $body .= '<b>'. t('Name: ') .'</b> '. $form_state['values']['name'] .'<br>';
+  $body .= '<b>'. t('Contact: ') .'</b> '. $form_state['values']['contact'] .'<br>';
+  $params['body'] = $body;
+  $params['attachments'] = $form_state['values']['attachment'];
+  drupal_mail($module, $key, $to, language_default(), $params, TRUE);
+  drupal_set_message(t('Thanks, your message has been successfully sent!'));
+}
+
+/**
+ * Implements hook_mail().
+ */
+function dvc_mail($key, &$message, $params) {
+  if ($key == 'callback_letter') {
+    $message['subject'] = t('Mail with attachment');
+    $message['body'][] = $params['body'];
+  }
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function dvc_block_info() {
+  $blocks['symbol'] = array(
+    'info' => t('Symbol block to calculator'),
+    'cache' => DRUPAL_NO_CACHE
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function dvc_block_view($delta = '') {
+  $block = array();
+  switch ($delta) {
+    case 'symbol':
+      $block['subject'] = t('');
+      $block['content'] = drupal_get_form('dvc_quicktabs_form');
+      break;
+  }
+
+  return $block;
+}
+
+/**
+* Popup callback function.
+*/
+
+function dvc_order_page_callback($js = NULL) {
+  $webFormNode = node_load(57);
+  if (!$js) {
+    return drupal_get_form('webform_client_form_57', $webFormNode, FALSE);
+  }
+  ctools_include('ajax');
+  ctools_include('modal');
+//  drupal_add_js('https://www.google.com/recaptcha/api.js', array('type' => 'external'));
+  $form_state = array(
+    'ajax' => TRUE,
+    'title' => t('Callback'),
+  );
+  $form_state['build_info']['args'] = array($webFormNode, FALSE);
+  $output = ctools_modal_form_wrapper('webform_client_form_57', $form_state);
+  print ajax_render($output);
+  drupal_exit();
+}
+
+//function dvc_order_page_callback($js = NULL) {
+//  $form_id = 'dvc_quicktabs_order_form';
+//  if (!$js) {
+//    return drupal_get_form($form_id);
+//  }
+//  ctools_include('modal');
+//  ctools_include('ajax');
+//  $form_state = array(
+//    'ajax' => TRUE,
+//  );
+//  $output = ctools_modal_form_wrapper($form_id, $form_state);
+//  if ($form_state['submitted']) {
+//    $output[] = ctools_modal_command_dismiss();
+//    $output[] = ctools_ajax_command_reload();
+//  }
+//  print ajax_render($output);
+//  drupal_exit();
+//}
+
+/**
+ * Helper function for get settings array.
+ */
+function dvc_settings_array() {
+  return array(
+    'scripts' => array(
+      'title' => t('Calculator'),
+      'item_symbol_1' => array('title' => t('Characters1'), 'type' => 'textarea'),
+      'item_text_1' => array('title' => t('Text1'), 'type' => 'textarea'),
+      'item_symbol_2' => array('title' => t('Characters2'), 'type' => 'textarea'),
+      'item_text_2' => array('title' => t('Text2'), 'type' => 'textarea'),
+      'item_symbol_3' => array('title' => t('Characters3'), 'type' => 'textarea'),
+      'item_text_3' => array('title' => t('Text3'), 'type' => 'textarea'),
+    ),
+    //'email' => array(
+    //  'title'     => t('Email'),
+    //  'callback' => array('title' => t('Callback'), 'type' => 'textarea'),
+    //),
+    'perezvoni' => array(
+      'title'     => t('Scripts'),
+      'perezvoni' => array('title' => t('Perezvonim'), 'type' => 'textarea'),
+      'google_analytics' => array('title' => t('Google Analytics'), 'type' => 'textarea'),
+      'google_console' => array('title' => t('Google Console'), 'type' => 'textarea'),
+      'metrika' => array('title' => t('Yandex Metrika'), 'type' => 'textarea'),
+    )
+  );
+}
+
+/**
+ * Menu callback form.
+ */
+function dvc_admin_common_variables_config_form($form, &$form_state) {
+  $form = array();
+  $form['#tree'] = TRUE;
+
+  foreach (dvc_settings_array() as $group => $fields) {
+    $form[$group] = array(
+      '#tree' => TRUE,
+      '#type' => 'fieldset',
+      '#title' => $fields['title'],
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+
+    $vars = variable_get("dvc_admin_common_variables", array());
+    foreach ($fields as $name => $field_data) {
+      if ($name != 'title') {
+        $form[$group][$name] = array(
+          '#type' => empty($field_data['type']) ? 'textfield' : $field_data['type'],
+          '#title' => $field_data['title'],
+          '#default_value' => !empty($vars[$group][$name]) ? $vars[$group][$name] : '',
+        );
+      }
+    }
+  }
+  $form['#submit'][] = 'dvc_admin_common_variables_save';
+
+  return system_settings_form($form);
+}
+
+/**
+ * Form submit.
+ */
+function dvc_admin_common_variables_save(&$form, &$form_state) {
+  $vars = variable_get("dvc_admin_common_variables", array());
+
+  foreach (dvc_settings_array() as $group => $fields) {
+    foreach($fields as $name => $field_data) {
+      if ($name != 'title') {
+        $vars[$group][$name] = $form_state['values'][$group][$name];
+      }
+    }
+  }
+  variable_set("dvc_admin_common_variables", $vars);
+  cache_clear_all('*', 'cache', TRUE);
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function dvc_form_alter(&$form, &$form_state, $form_id) {
+  //dsm($form);
+  if ($form_id == 'webform_client_form_36') {
+    $form['#attributes']['onsubmit'] = 'ga(\'send\', \'event\', \'Zapov\', \'click\');';
+    $form['actions']['submit']['#attributes'] = array('onsubmit' => 'ga(\'send\', \'event\', \'Zapov\', \'click\');');
+    $form['#after_build'][] = 'dvc_after_build';
+    $form['#submit'][] = 'dvc_submit_message';
+  }
+  if ($form_id == 'webform_client_form_57') {
+    drupal_add_js('https://www.google.com/recaptcha/api.js', array('type' => 'external'));
+    drupal_add_js(drupal_get_path('module', 'dvc') . '/dvc.js');
+
+    $form['actions']['submit']['#attributes'] = array('class' => array('edit-submit'), 'onsubmit' => 'ga(\'send\', \'event\', \'Zapov\', \'click\');');
+    $form['#attributes'] = array('onsubmit' => 'ga(\'send\', \'event\', \'Zapov\', \'click\');');
+    $form['actions']['submit']['#suffix'] = '<span>' . t('or') . '</span><span class="cancel"><a onClick="Drupal.CTools.Modal.dismiss()">'. t('Cancel') .'</a></span>';
+    $form['#submit'][] = 'dvc_submit_message';
+    $form['submitted']['contact']['#description'] = t($form['submitted']['contact']['#description']);
+  }
+}
+
+function dvc_submit_message() {
+  $messages = drupal_get_messages('status');
+  drupal_set_message(t('Thanks, your message has been successfully sent!'));
+}
+
+/**
+ * Add placeholder to link field.
+ */
+function dvc_after_build(&$form, &$form_state) {
+  $form['submitted']['choose_file']['remove_button']['#attributes']['class'] = array("button-primary", "btn", "btn-animated", "btn-contact", "ripple-alone");;
+  $form['submitted']['choose_file']['upload_button']['#attributes']['class'] = array("button-primary", "btn", "btn-animated", "btn-contact", "ripple-alone");
+  return $form;
+}
+
+/**
+ *  Provide custom sort
+ */
+function dvc_views_post_execute(&$view) {
+  if($view->name == 'calculator') {
+    if($view->current_display == 'block'){
+      $array_sorted = array();
+      $array_translated = array();
+      foreach ($view->result as $key => $value){
+        $term = taxonomy_term_load($value->tid);
+        $term_name = i18n_taxonomy_localize_terms($term);
+        $array_translated[$key] = $term_name->name;
+        foreach($array_translated as $k => $val){
+          $array_sorted[$k] = $val;
+        }
+      }
+      global $language;
+      $lang_name = $language->language;
+      if ($lang_name = 'ru') {
+        setlocale(LC_ALL, "Russian_Russia.1251");
+      }
+      if ($lang_name = 'el') {
+        setlocale(LC_ALL, 'el_GR.UTF-8');
+      }
+      asort($array_sorted);
+
+      $mass = array();
+      foreach ($array_sorted as $akey => $aval) {
+        $mass[] = $view->result[$akey];
+      }
+      $view->result = $mass;
+    }
+  }
+}

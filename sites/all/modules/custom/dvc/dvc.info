@@ -1,0 +1,6 @@
+name = DVC custom functional
+description = Provide DVC custom functional
+package = Custom
+core = 7.x
+dependencies[] = ctools
+

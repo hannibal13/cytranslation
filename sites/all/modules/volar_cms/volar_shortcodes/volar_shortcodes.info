@@ -1,0 +1,6 @@
+; $Id: 
+name = Volar Shortcodes
+description = Shortcodes for Volar theme
+package = "NikaDevs"
+version = "7.x - 1.0"
+core = 7.x

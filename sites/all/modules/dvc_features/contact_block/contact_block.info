@@ -1,0 +1,13 @@
+name = Contact block
+core = 7.x
+package = Features
+dependencies[] = comment
+dependencies[] = fe_block
+dependencies[] = features
+dependencies[] = menu
+features[fe_block_boxes][] = ccontact_in_header
+features[fe_block_settings][] = block-ccontact_in_header
+features[features_api][] = api:2
+features[menu_custom][] = management
+features[menu_links][] = management_contact-info-in-header:admin/structure/block/manage/block/31/configure
+project path = sites/all/modules/dvc_features

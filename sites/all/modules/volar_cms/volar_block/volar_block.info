@@ -1,0 +1,8 @@
+name = Volar Block
+description = Bloacks for Volar theme
+core = 7.x
+package = NikaDevs
+version = 7.x-1.0
+dependencies[] = blockexport
+features[blockexport_settings][] = block_settings
+features[features_api][] = api:2

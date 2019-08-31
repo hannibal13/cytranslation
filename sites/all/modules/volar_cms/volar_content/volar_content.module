@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Volar Content feature.
+ */
+
+include_once 'volar_content.features.inc';

@@ -1,0 +1,2188 @@
+<?php
+
+/**
+ * Implementation of hook_menu().
+ */
+function volar_shortcodes_menu() {
+  variable_set('nd_visualshortcodes_extra_css', drupal_get_path('module', 'volar_shortcodes') . '/css/volar_shortcodes.css');
+  $fonts = array('' => t('Default'), 'font-second' => 'Lato');
+  variable_set('nd_visualshortcodes_fonts', $fonts);
+  $items = array();
+  $items['admin/ajax/volar_shortcodes/icons_autocomplete'] = array(
+    'page callback' => 'volar_shortcodes_ajax_icons_autocomplete',
+    'access arguments' => array('administer nd visualshortcodes'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+function volar_shortcodes_ajax_icons_autocomplete($str) {
+  $icons = array('icon-mobile', 'icon-laptop', 'icon-desktop', 'icon-tablet', 'icon-phone', 'icon-document', 'icon-documents', 'icon-search', 'icon-clipboard', 'icon-newspaper', 'icon-notebook', 'icon-book-open', 'icon-browser', 'icon-calendar', 'icon-presentation', 'icon-picture', 'icon-pictures', 'icon-video', 'icon-camera', 'icon-printer', 'icon-toolbox', 'icon-briefcase', 'icon-wallet', 'icon-gift', 'icon-bargraph', 'icon-grid', 'icon-expand', 'icon-focus', 'icon-edit', 'icon-adjustments', 'icon-ribbon', 'icon-hourglass', 'icon-lock', 'icon-megaphone', 'icon-shield', 'icon-trophy', 'icon-flag', 'icon-map', 'icon-puzzle', 'icon-basket', 'icon-envelope', 'icon-streetsign', 'icon-telescope', 'icon-gears', 'icon-key', 'icon-paperclip', 'icon-attachment', 'icon-pricetags', 'icon-lightbulb', 'icon-layers', 'icon-pencil', 'icon-tools', 'icon-tools-2', 'icon-scissors', 'icon-paintbrush', 'icon-magnifying-glass', 'icon-circle-compass', 'icon-linegraph', 'icon-mic', 'icon-strategy', 'icon-beaker', 'icon-caution', 'icon-recycle', 'icon-anchor', 'icon-profile-male', 'icon-profile-female', 'icon-bike', 'icon-wine', 'icon-hotairballoon', 'icon-globe', 'icon-genius', 'icon-map-pin', 'icon-dial', 'icon-chat', 'icon-heart', 'icon-cloud', 'icon-upload', 'icon-download', 'icon-target', 'icon-hazardous', 'icon-piechart', 'icon-speedometer', 'icon-global', 'icon-compass', 'icon-lifesaver', 'icon-clock', 'icon-aperture', 'icon-quote', 'icon-scope', 'icon-alarmclock', 'icon-refresh', 'icon-happy', 'icon-sad', 'icon-facebook', 'icon-twitter', 'icon-googleplus', 'icon-rss', 'icon-tumblr', 'icon-linkedin', 'icon-dribbble');
+  $font_awesome = nd_visualshortcodes_fontawesome_icons();
+  $icons = array_merge($icons, $font_awesome);
+  $matches = array();
+  foreach ($icons as $icon) {
+    if(stripos($icon, $str) !== FALSE) {
+      $matches[$icon] = $icon;
+    }
+  }
+  drupal_json_output($matches);
+}
+
+/**
+ * Implementation of hook_shortcode_info() .
+ * Using the same formatting as hook_filter_info()`
+ */
+function volar_shortcodes_shortcode_info() {
+  $shortcodes['nd_menu'] = array(
+    'title' => t('Menu'),
+    'process callback' => 'volar_shortcodes_shortcode_menu',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'volar_shortcodes_shortcode_menu_settings',
+    'icon' => 'fa fa-bars',
+    'preview' => FALSE,
+  );
+  $shortcodes['nd_view'] = array(
+    'title' => t('View'),
+    'description' => t('Embed content - rendered View.'),
+    'process callback' => 'volar_shortcodes_shortcode_view',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'volar_shortcodes_shortcode_view_settings',
+    'icon' => 'fa fa-sun-o',
+    'description_callback' => 'volar_shortcodes_shortcode_view_description',
+    'preview' => FALSE,
+  );
+  $shortcodes['nd_block'] = array(
+    'title' => t('Block'),
+    'description' => t('Render block.'),
+    'process callback' => 'volar_shortcodes_shortcode_block',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'volar_shortcodes_shortcode_block_settings',
+    'icon' => 'fa fa-file',
+    'description_callback' => 'volar_shortcodes_shortcode_block_description',
+    'preview' => FALSE,
+  );
+  $shortcodes['nd_node'] = array(
+    'title' => t('Node'),
+    'description' => t('Render node'),
+    'process callback' => 'volar_shortcodes_shortcode_node',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'volar_shortcodes_shortcode_node_settings',
+    'icon' => 'fa fa-file-o',
+    'description_callback' => 'volar_shortcodes_shortcode_node_description',
+    'preview' => FALSE,
+  );
+  $shortcodes['nd_container'] = array(
+    'title' => t('Container 1170px'),
+    'description' => t('Container for content.'),
+    'process callback' => 'volar_shortcodes_shortcode_container',
+    'icon' => 'fa fa-hdd-o',
+  );
+  $shortcodes['nd_div'] = array(
+    'title' => t('DIV Container'),
+    'process callback' => 'volar_shortcodes_shortcode_div',
+    'icon' => 'fa fa-folder-o',
+  );
+  $shortcodes['row'] = array(
+    'title' => t('Row for columns'),
+    'description' => t('Container for cols.'),
+    'process callback' => 'volar_shortcodes_shortcode_row',
+    'process backend callback' => 'nd_visualshortcodes_backend_row',
+    'icon' => 'fa fa-th-large',
+    'child shortcode' => 'col'
+  );
+  $shortcodes['col'] = array(
+    'title' => t('Column'),
+    'description' => t('Column with size settings'),
+    'process callback' => 'volar_shortcodes_shortcode_col',
+    'process backend callback' => 'nd_visualshortcodes_backend_col',
+    'process settings callback' => 'nd_visualshortcodes_shortcode_col_settings',
+    'icon' => 'fa fa-columns'
+  );
+  $shortcodes['html'] = array(
+    'title' => t('HTML'),
+    'description' => t('HTML code'),
+    'process callback' => 'volar_shortcodes_shortcode_html',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'volar_shortcodes_shortcode_html_settings',
+    'icon' => 'fa fa-code',
+  );
+  $shortcodes['nd_parallax'] = array(
+    'title' => t('Parallax'),
+    'process callback' => 'volar_shortcodes_shortcode_parallax',
+    'icon' => 'fa fa-file-image-o',
+  );
+  $shortcodes['nd_text_rotator'] = array(
+    'title' => t('Text Rotator'),
+    'process callback' => 'volar_shortcodes_shortcode_text_rotator',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-sort-alpha-asc',
+  );
+  $shortcodes['nd_title'] = array(
+    'title' => t('Title'),
+    'process callback' => 'volar_shortcodes_shortcode_title',
+    'icon' => 'fa fa-h-square',
+    'description_field' => 'title',
+    'backend preview' => TRUE,
+  );
+  $shortcodes['nd_title_section'] = array(
+    'title' => t('Title Section'),
+    'process callback' => 'volar_shortcodes_shortcode_title_section',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-h-square',
+    'backend preview' => TRUE,
+    'preview' => TRUE
+  );
+  $shortcodes['nd_progress'] = array(
+    'title' => t('Progress Bar'),
+    'process callback' => 'volar_shortcodes_shortcode_progress',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-tasks',
+  );
+  $shortcodes['nd_quote'] = array(
+    'title' => t('Quote'),
+    'process callback' => 'volar_shortcodes_shortcode_quote',
+    'icon' => 'fa fa-quote-right',
+    'child shortcode' => 'html',
+  );
+  $shortcodes['nd_bg'] = array(
+    'title' => t('Background'),
+    'description' => t('Background for content.'),
+    'process callback' => 'volar_shortcodes_shortcode_bg',
+    'icon' => 'fa fa-file-image-o',
+  );
+  $shortcodes['nd_fact'] = array(
+    'title' => t('Fact Counter'),
+    'process callback' => 'volar_shortcodes_shortcode_fact',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-sort-numeric-asc',
+    'preview' => TRUE
+  );
+  $shortcodes['nd_service'] = array(
+    'title' => t('Service Icon Box'),
+    'process callback' => 'volar_shortcodes_shortcode_service',
+    'icon' => 'fa fa-gears',
+  );
+  $shortcodes['nd_video'] = array(
+    'title' => t('Video Iframe'),
+    'description' => t('Iframe adaptive video.'),
+    'process callback' => 'volar_shortcodes_shortcode_video',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-video-camera',
+  );
+  $shortcodes['nd_image'] = array(
+    'title' => t('Image'),
+    'process callback' => 'volar_shortcodes_shortcode_image',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-file-image-o',
+    'backend preview' => TRUE,
+  );
+  $shortcodes['nd_button'] = array(
+    'title' => t('Button link'),
+    'process callback' => 'volar_shortcodes_shortcode_button',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-bold',
+  );
+  $shortcodes['nd_hr'] = array(
+    'title' => t('Delimiter Line'),
+    'process callback' => 'volar_shortcodes_shortcode_hr',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-ellipsis-h',
+  );
+  $shortcodes['nd_tabs'] = array(
+    'title' => t('Tabs container'),
+    'process callback' => 'volar_shortcodes_shortcode_tabs',
+    'icon' => 'fa fa-folder-open',
+    'child shortcode' => 'nd_tab',
+    'description_field' => 'type',
+  );
+  $shortcodes['nd_tab'] = array(
+    'title' => t('Tab'),
+    'process callback' => 'volar_shortcodes_shortcode_tab',
+    'icon' => 'fa fa-folder',
+    'description_field' => 'title',
+  );
+  $shortcodes['nd_slider'] = array(
+    'title' => t('Slider container'),
+    'description' => t('Slider for any content'),
+    'process callback' => 'volar_shortcodes_shortcode_slider',
+    'icon' => 'fa fa-arrows-h',
+    'child shortcode' => 'nd_slider_item',
+    'description_field' => 'type',
+  );
+  $shortcodes['nd_slider_item'] = array(
+    'title' => t('Slider Item'),
+    'process callback' => 'volar_shortcodes_shortcode_slider_item',
+    'icon' => 'fa fa-long-arrow-right'
+  );
+  $shortcodes['nd_pricing_table'] = array(
+    'title' => t('Pricing table'),
+    'process callback' => 'volar_shortcodes_shortcode_pricing_table',
+    'icon' => 'fa fa-dollar',
+    'child shortcode' => 'nd_pricing_item',
+    'description_field' => 'type',
+  );
+  $shortcodes['nd_pricing_item'] = array(
+    'title' => t('Pricing item'),
+    'process callback' => 'volar_shortcodes_shortcode_pricing_item',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-dollar',
+  );
+  $shortcodes['nd_gmap'] = array(
+    'title' => t('Google Map'),
+    'description' => t('Google Map'),
+    'process callback' => 'volar_shortcodes_shortcode_gmap',
+    'process settings callback' => 'volar_shortcodes_shortcode_gmap_settings',
+    'icon' => 'fa fa-map-marker',
+    'description_field' => 'address'
+  );
+  $shortcodes['nd_icon_container'] = array(
+    'title' => t('Icons Container'),
+    'process callback' => 'volar_shortcodes_shortcode_icon_container',
+    'child shortcode' => 'nd_icon',
+    'icon' => 'fa fa-image',
+  );
+  $shortcodes['nd_icon'] = array(
+    'title' => t('Icon'),
+    'process callback' => 'volar_shortcodes_shortcode_icon',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-image',
+  );
+  $shortcodes['nd_breadcrumb'] = array(
+    'title' => t('Breadcrumb'),
+    'process callback' => 'volar_shortcodes_shortcode_breadcrumb',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-bold',
+  );
+  $shortcodes['nd_bg_slider'] = array(
+    'title' => t('BG Slider container'),
+    'process callback' => 'volar_shortcodes_shortcode_bg_slider',
+    'icon' => 'fa fa-arrows-h',
+    'child shortcode' => 'nd_bg_slider_item',
+  );
+  $shortcodes['nd_bg_slider_item'] = array(
+    'title' => t('BG Slider Item'),
+    'process callback' => 'volar_shortcodes_shortcode_bg_slider_item',
+    'icon' => 'fa fa-long-arrow-right'
+  );
+  return $shortcodes;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function volar_shortcodes_theme($existing, $type, $theme, $path) {
+  $theme = array(
+    'volar_project_next_prev' => array(
+      'variables' => array('prev' => '', 'next' => '', 'all_works' => ''),
+    ),
+    'volar_shortcodes_menu' => array(
+      'variables' => array('values' => array()),
+      'template' => 'volar-shortcodes-menu'
+    )
+  );
+  return $theme;
+}
+
+function volar_shortcodes_shortcode_menu($attrs, $text) {
+  $menu = isset($attrs['menu']) ? $attrs['menu'] : 'main-menu';
+  $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+  $logo = isset($file->uri) ? file_create_url($file->uri) : theme_get_setting('logo');
+  $type = isset($attrs['type']) ? $attrs['type'] : '';
+  $language = isset($attrs['language']) ? $attrs['language'] : '';
+  $attrs['class'] = isset($attrs['font_color']) ? $attrs['font_color'] : '';
+  $variables = array('menu' => $menu, 'logo' => $logo, 'type' => $type, 'language' => $language);
+  $output = theme('volar_shortcodes_menu', array('values' => $variables));
+  $attrs_output = _volar_shortcodes_shortcode_attributes($attrs);
+  if ($attrs_output) {
+    $output = '<div ' . $attrs_output . '>' . $output . '</div>';
+  }
+  return $output;
+}
+
+function volar_shortcodes_shortcode_menu_settings($attrs, $text) {
+  $menus = menu_get_menus();
+  $form['menu'] = array(
+    '#type' => 'select',
+    '#title' => t('Menu'),
+    '#default_value' => isset($attrs['menu']) ? $attrs['menu'] : '',
+    '#options' => $menus,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+  $filename = isset($file->uri) ? $file->uri : '';
+  $image = $filename ? theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $filename)) : '';
+  $form['fid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Override Default Logo'),
+    '#default_value' => isset($attrs['fid']) ? $attrs['fid'] : '',
+    '#attributes' => array('class' => array('image-media-upload hidden')),
+    '#field_suffix' => '<div class = "preview-image">' . $image . '</div><a href = "#" class = "media-upload button">' . t('Upload Image') .'</a><a href = "#" class = "media-remove button">' . t('Remove Image') .'</a>',
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>'
+  );
+  $types = array('sticky' => t('Sticky Transparent'), 'navbar-dark' => t('Dark'), 'navbar-dark f-white' => t('Transparent To Dark'), 'navbar-default' => t('White'));
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Background Type'),
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : '',
+    '#options' => $types,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $types = array('' => t('White'), 'light' => t('Dark'));
+  $form['font_color'] = array(
+    '#type' => 'select',
+    '#title' => t('Font Color'),
+    '#default_value' => isset($attrs['font_color']) ? $attrs['font_color'] : '',
+    '#options' => $types,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+    '#states' => array('visible' => array(
+      'select[name="type"]' => array('value' => 'sticky'),
+    )),
+  );
+  $form['language'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Language DropDown'),
+    '#default_value' => isset($attrs['language']) ? $attrs['language'] : FALSE,
+    '#options' => $types,
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+
+  return $form;
+}
+
+function volar_shortcodes_default_logo() {
+    return '<svg version="1.1" id="logo-svg-navbar" x="0px" y="0px"
+	 width="640px" height="320px" viewBox="0 0 640 320">
+<g>
+	<path class="logo-svg-path-navbar" d="M99.4,69.8c-1.3,0-2.6-0.5-3.6-1.4L29.3,9.6c-2.3-2-2.5-5.5-0.5-7.8c2-2.3,5.5-2.5,7.8-0.5L103,60.1c2.3,2,2.5,5.5,0.5,7.8   C102.4,69.1,100.9,69.8,99.4,69.8z"/>
+	<path class="logo-svg-path-navbar" d="M73.8,78.1c-1.3,0-2.6-0.5-3.6-1.4L3.8,18c-2.3-2-2.5-5.5-0.5-7.8c2-2.3,5.5-2.5,7.8-0.5l66.4,58.8c2.3,2,2.5,5.5,0.5,7.8   C76.9,77.5,75.4,78.1,73.8,78.1z"/>
+	<path class="logo-svg-path-navbar" d="M71.9,104.5c-1.3,0-2.6-0.5-3.6-1.4L1.9,44.4c-2.3-2-2.5-5.5-0.5-7.8c2-2.3,5.5-2.5,7.8-0.5l66.4,58.8   c2.3,2,2.5,5.5,0.5,7.8C74.9,103.9,73.4,104.5,71.9,104.5z"/>
+	<path class="logo-svg-path-navbar" d="M78.1,140.7c-1.3,0-2.6-0.5-3.6-1.4L8.1,80.5c-2.3-2-2.5-5.5-0.5-7.8c2-2.3,5.5-2.5,7.8-0.5l66.4,58.8   c2.3,2,2.5,5.5,0.5,7.8C81.1,140,79.6,140.7,78.1,140.7z"/>
+	<path class="logo-svg-path-navbar" d="M123.4,60.9c-1.3,0-2.5-0.4-3.6-1.3l-54.3-46c-2.3-2-2.6-5.4-0.6-7.8c2-2.3,5.4-2.6,7.8-0.6l54.3,46c2.3,2,2.6,5.4,0.6,7.8   C126.5,60.3,124.9,60.9,123.4,60.9z"/>
+</g>
+<g>
+	<path class="logo-svg-path-navbar" d="M164.9,69.8c-1.5,0-3-0.6-4.1-1.9c-2-2.3-1.8-5.8,0.5-7.8l66.4-58.8c2.3-2,5.7-1.8,7.8,0.5c2,2.3,1.8,5.8-0.5,7.8   l-66.4,58.8C167.5,69.3,166.2,69.8,164.9,69.8z"/>
+	<path class="logo-svg-path-navbar" d="M190.4,78.1c-1.5,0-3-0.6-4.1-1.9c-2-2.3-1.8-5.8,0.5-7.8l66.4-58.8c2.3-2,5.8-1.8,7.8,0.5s1.8,5.8-0.5,7.8l-66.4,58.8   C193,77.7,191.7,78.1,190.4,78.1z"/>
+	<path class="logo-svg-path-navbar" d="M192.4,104.5c-1.5,0-3-0.6-4.1-1.9c-2-2.3-1.8-5.8,0.5-7.8l66.4-58.8c2.3-2,5.8-1.8,7.8,0.5s1.8,5.8-0.5,7.8L196,103.1   C195,104.1,193.7,104.5,192.4,104.5z"/>
+	<path class="logo-svg-path-navbar" d="M186.2,140.7c-1.5,0-3-0.6-4.1-1.9c-2-2.3-1.8-5.8,0.5-7.8l66.4-58.8c2.3-2,5.8-1.8,7.8,0.5s1.8,5.8-0.5,7.8l-66.4,58.8   C188.8,140.2,187.5,140.7,186.2,140.7z"/>
+	<path class="logo-svg-path-navbar" d="M140.9,60.9c-1.6,0-3.1-0.7-4.2-1.9c-2-2.3-1.7-5.8,0.6-7.8l54.3-46c2.3-2,5.8-1.7,7.8,0.6c2,2.3,1.7,5.8-0.6,7.8l-54.3,46   C143.4,60.5,142.2,60.9,140.9,60.9z"/>
+</g>
+<path class="logo-svg-path-navbar" d="M132.3,147.1c-2.5,0-4.5-2-4.5-4.5V77.1c0-2.5,2-4.5,4.5-4.5s4.5,2,4.5,4.5v65.5C136.8,145.1,134.8,147.1,132.3,147.1z"/>
+<path class="logo-svg-path-navbar" d="M150.8,147.1h-37c-2.5,0-4.5-2-4.5-4.5s2-4.5,4.5-4.5h37c2.5,0,4.5,2,4.5,4.5S153.3,147.1,150.8,147.1z"/>
+</svg>';
+}
+
+function _volar_shortcodes_shortcode_attributes($attrs) {
+  if(empty($attrs)) {
+    return '';
+  }
+  $allowed_attributes = array('class' => 'class', 'href' => 'href', 'id' => 'id', 'animation' => 'class', 'animation_delay' => 'data-wow-delay', 'data-background' => 'data-background', 'style' => 'style', 'extra_style' => 'style', 'font' => 'class');
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : ''; 
+  if (isset($attrs['link']) && $attrs['link'] == $_GET['q']) {
+    $attrs['class'] .= ' active'; 
+  }
+  if (isset($attrs['animation']) && $attrs['animation']) {
+    if(isset($attrs['animation_delay'])) {
+      $attrs['animation_delay'] = ($attrs['animation_delay'] / 1000) . 's';
+    }
+    $attrs['class'] .= ' wow'; 
+  }
+
+  $attrs['class'] .= isset($attrs['extra_classes']) ? ' ' . $attrs['extra_classes'] : '';
+  $output = '';
+  $attrs_array = array('class' => '');
+  foreach($attrs as $name => $value) {
+    $value = trim($value);
+    if(strpos($name, 'style_') === 0) {
+      $value_style = str_replace(array('style_', '_'), array('', '-'), $name);
+      if(strpos($value_style, 'border-radius') !== FALSE) {
+        $value = strpos($value, '%') !== FALSE ? $value : (int)$value . 'px;';
+        $value = '-webkit-' . $value_style. ': ' . $value . '; -moz-' . $value_style. ': ' . $value . '; ' . $value_style. ': ' . $value . ';';
+      }
+      elseif(strpos($name, 'margin') !== FALSE || strpos($name, 'padding') !== FALSE || strpos($name, 'width') !== FALSE || strpos($name, 'height') !== FALSE) {
+        $value = strpos($value, '%') !== FALSE || strpos($value, 'vh') !== FALSE ? $value . ';' : (int)$value . 'px;';
+        $value =  $value_style . ': ' . $value;
+      }
+      elseif(strpos($name, 'color') !== FALSE) {
+        $value =  $value_style . ': #' . trim($value, '#') . ';';
+      }
+      elseif(strpos($value_style, 'image') !== FALSE) {
+        $file = file_load($value);
+        $filename = isset($file->uri) ? file_create_url($file->uri) : '';
+        $value =  $value_style . ': url("' . $filename . '");';
+      }
+      else {
+        $value = $value_style . ': ' . $value . ';';
+      }
+      $name = 'style';
+    }
+    if(isset($allowed_attributes[$name])) {
+      $name = $allowed_attributes[$name];
+      if ($value !== '') {
+        $attrs_array[$name] = (isset($attrs_array[$name]) ? $attrs_array[$name] . ' ' : '') . $value;
+      }
+    }
+    elseif(strpos($name, 'data-') === 0) {
+      if ($value !== '') {
+        $attrs_array[$name] = (isset($attrs_array[$name]) ? $attrs_array[$name] . ' ' : '') . $value;
+      }
+    }
+  }
+  if(isset($attrs['style_background_color']) && strtolower(trim($attrs['style_background_color'], '#')) == '000000') {
+    $attrs_array['class'] .= ' text-white';
+  }
+  if(isset($attrs['style_background_color']) && strtolower(trim($attrs['style_background_color'], '#')) == 'ffffff') {
+    $attrs_array['class'] .= ' text-black';
+  }
+  if(isset($attrs['text_align']) && $attrs['text_align']) {
+    $attrs_array['style'] = (isset($attrs_array['style']) ? $attrs_array['style'] : '') . ' text-align:'. $attrs['text_align'] . ';';
+  }
+
+  foreach($attrs_array as $name => $value) {
+    if($value) {
+      $output .= " $name = '$value'";
+    }
+  }
+  return $output;
+}
+
+function volar_shortcodes_shortcode_view($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : '';
+  $view = '';
+  if (strpos($attrs['admin_url'], 'admin/structure/views/view') !== FALSE) {
+    $view_name = substr($attrs['admin_url'], strpos($attrs['admin_url'], 'view/') + 5);
+    $parts = explode('/', $view_name);
+    $view_name = $parts[0];
+    $view = isset($parts[2]) ? views_embed_view($view_name, $parts[2]) : views_embed_view($view_name);
+  }
+  $text = '<div ' . _volar_shortcodes_shortcode_attributes($attrs)  . '>' . $view . '</div>';
+  return $text;
+}
+
+function volar_shortcodes_shortcode_view_settings($attrs, $text) {
+  $views = views_get_all_views();
+  $displays = array();
+  foreach ($views as $view) {
+    foreach($view->display as $display) {
+      if($display->display_title != 'Master') {
+        $displays['admin/structure/views/view/' . $view->name . '/edit/' . $display->id] = check_plain($view->human_name . ': ' . $display->display_title);
+      }
+    }
+  }
+  $form['admin_url'] = array(
+    '#title' => t('View'),
+    '#type' => 'select',
+    '#options' => $displays,
+    '#default_value' => isset($attrs['admin_url']) ? $attrs['admin_url'] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_view_description($attrs, $text) {
+  if (strpos($attrs['admin_url'], 'admin/structure/views/view') !== FALSE) {
+    $form = volar_shortcodes_shortcode_view_settings($attrs, $text);
+    $value = l($form['admin_url']['#options'][$attrs['admin_url']], $attrs['admin_url'], array('attributes' => array('target' => '_blank')));
+    return $value;
+  }
+}
+
+function volar_shortcodes_shortcode_block($attrs, $text) {
+  if (strpos($attrs['admin_url'], 'admin/structure/block') !== FALSE) {
+    $block_name = substr($attrs['admin_url'], strpos($attrs['admin_url'], '/manage/') + 8);
+    $parts = explode('/', $block_name);
+    $block = _nikadevs_render_block($parts[0], $parts[1]);
+    $block = render($block);
+  }
+  $attrs_output = _volar_shortcodes_shortcode_attributes($attrs);
+  $text = $attrs_output ? '<div ' . $attrs_output  . '>' . $block . '</div>' : $block;
+  return $text;
+}
+
+function volar_shortcodes_shortcode_block_tip($format, $long) {
+  $output = array();
+  $output[] = '<p><strong>Block:</strong><br/>[block admin_url = "admin/structure/block/manage/volar_cms/gmap/configure"][/block]</br>';
+  $output[] = '<strong>admin_url</strong> - URL of the block edit page.</p>';
+  return implode(' ', $output);
+}
+
+function volar_shortcodes_shortcode_block_settings($attrs, $text) {
+  module_load_include('inc', 'block', 'block.admin');
+  $current_theme = variable_get('theme_default', 'none');
+  $blocks = block_admin_display_prepare_blocks($current_theme);
+  usort($blocks, '_sort_blocks');
+  $options = array();
+  foreach ($blocks as $block) {
+    $options['admin/structure/block/manage/' . $block['module']  .'/' . $block['delta'] . '/configure'] = check_plain($block['info']);
+  }
+  asort($options);
+  $form['admin_url'] = array(
+    '#title' => t('Block'),
+    '#type' => 'select',
+    '#options' => $options,
+    '#default_value' => isset($attrs['admin_url']) ? $attrs['admin_url'] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_block_description($attrs, $text) {
+  if (strpos($attrs['admin_url'], 'admin/structure/block') !== FALSE) {
+    $form = volar_shortcodes_shortcode_block_settings($attrs, $text);
+    $value = l($form['admin_url']['#options'][$attrs['admin_url']], $attrs['admin_url'], array('attributes' => array('target' => '_blank')));
+    return $value;
+  }
+}
+
+function volar_shortcodes_shortcode_node($attrs, $text) {
+  if (isset($attrs['admin_url']) && strpos($attrs['admin_url'], 'node/') !== FALSE) {
+    $node_name = substr($attrs['admin_url'], strpos($attrs['admin_url'], 'node/') + 5);
+    $parts = explode('/', $node_name);
+    $node = node_load($parts[0]);
+    if(isset($node->nid) && $node->nid) {
+      $node = node_view($node);
+      $output = render($node);
+      $attrs = _volar_shortcodes_shortcode_attributes($attrs);
+      $text = $attrs ? '<div ' . $attrs  . '>' . $output . '</div>' : $output;
+      return $text;
+    }
+  }
+}
+
+function volar_shortcodes_shortcode_node_tip($format, $long) {
+  $output = array();
+  $output[] = '<p><strong>Node:</strong><br/>[node admin_url = "node/1/edit"][/node]</br>';
+  $output[] = '<strong>admin_url</strong> - URL of the node edit page.</p>';
+  return implode(' ', $output);
+}
+
+function volar_shortcodes_shortcode_node_description($attrs, $text) {
+  if (strpos($attrs['admin_url'], 'node/') !== FALSE) {
+    $node_name = substr($attrs['admin_url'], strpos($attrs['admin_url'], 'node/') + 5);
+    $parts = explode('/', $node_name);
+    $nid = $parts[0];
+    if(is_numeric($nid)) {
+      $node = node_load($nid);
+      return l($node->title, 'node/' . $nid . '/edit', array('attributes' => array('target' => '_blank')));
+    }
+  }
+}
+
+function volar_shortcodes_shortcode_node_settings($attrs, $text) {
+  $form['admin_url'] = array(
+    '#title' => t('Node Title'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/nd_visualshortcodes/node_autocomplete',
+    '#default_value' => isset($attrs['admin_url']) ? $attrs['admin_url'] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_container($attrs, $text) {
+  $attrs['class'] = 'container ' . (isset($attrs['class']) ? $attrs['class'] : '');
+  $text = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) .'>' . $text . '</div>';
+  return $text;
+}
+
+function volar_shortcodes_shortcode_container_tip($format, $long) {
+  $output = array();
+  $output[] = '<p><strong>Responsive container:</strong><br/>[container]Content[/container]</br>';
+  $output[] = 'Use this for non-full width content.</p>';
+  $output[] = '<p><strong>Responsive columns:</strong><br/>[row]<br/>[col phone = 12 tablet = 12 desktop = 6 wide = 6]Content with date[/col][/row]</br>';
+  $output[] = 'Describe how many rows will take col in different devices: phone, tablet, desktop, wide. From 1 to 12 rows.</p>';
+  return implode(' ', $output);
+}
+
+function volar_shortcodes_shortcode_div($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] . ' ' : '';
+  $attrs['class'] .= isset($attrs['vertical_align']) && $attrs['vertical_align'] ? 'home-text ': '';
+  $text = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) .'>' . $text . '</div>';
+  if(isset($attrs['vertical_align']) && $attrs['vertical_align'] ) {
+    $text = '<div class = "home-content">' . $text . '</div>';
+  }
+  return $text;
+}
+
+function volar_shortcodes_shortcode_div_settings($attrs, $text) {
+  $form['vertical_align'] = array(
+    '#title' => t('Vertical Align'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['vertical_align']) ? $attrs['vertical_align'] : FALSE,
+  );
+  return $form;
+}
+
+
+function volar_shortcodes_shortcode_row($attrs, $text) {
+  $attrs['class'] = 'row ' . (isset($attrs['class']) ? $attrs['class'] : '');
+  $text = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) .'>' . $text . '</div>';
+  return $text;
+}
+
+function volar_shortcodes_shortcode_col($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : '';
+  if(isset($attrs['phone'])) {
+    $attrs['class'] .= ' col-xs-' . $attrs['phone'];
+  }
+  if(isset($attrs['tablet'])) {
+    $attrs['class'] .= ' col-sm-' . $attrs['tablet'];
+  }
+  if(isset($attrs['desktop'])) {
+    $attrs['class'] .= ' col-md-' . $attrs['desktop'];
+  }
+  if(isset($attrs['wide'])) {
+    $attrs['class'] .= ' col-lg-' . $attrs['wide'];
+  }
+  $text = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) . '>' . $text . '</div>';
+  return $text;
+}
+
+function volar_shortcodes_shortcode_html($attrs, $text) {
+  $attrs['class'] = isset($attrs['p_classes']) && $attrs['p_classes'] ? $attrs['p_classes'] : '';
+  $attrs['class'] .= isset($attrs['p_color']) ? ' ' . $attrs['p_color'] : '';
+  // Made a little hack for tables which can't be controled because rendered some WYSIWYG editor, and also list styles
+  $text = str_replace(array('<table', '<ul>', '<ol>'), array('<table class = "table table-bordered table-striped"', '<ul class = "list">', '<ol class = "list">'), $text);
+  $attrs_output = _volar_shortcodes_shortcode_attributes($attrs);
+  if($attrs_output) {
+    return '<div ' . $attrs_output . '>' . $text . '</div>';
+  }
+  return $text;
+}
+
+function volar_shortcodes_shortcode_html_preview($attrs, $text) {
+  $text = truncate_utf8(strip_tags($text), 800, TRUE, TRUE);
+  return $text;
+}
+
+function volar_shortcodes_shortcode_html_settings($attrs, $text) {
+  $form = nd_visualshortcodes_shortcode_html_settings($attrs, $text);
+  $classes = array('' => t('None'), 'section-text' => t('16px 300weight'), 'footer-text' => t('17px'), 'blog-item-body' => t('16px 300weight 1.8line'), 'widget-p' => t('13px 1.7line'));
+  $form['p_classes'] = array(
+    '#type' => 'select',
+    '#title' => t('Text Options'),
+    '#options' => $classes,
+    '#default_value' => isset($attrs['p_classes']) ? $attrs['p_classes'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+  );
+  $color = array('' => t('Default'), 'f-grey' => t('Grey'), 'f-white' => t('White'), 'f-black' => t('Black'));
+  $form['p_color'] = array(
+    '#type' => 'select',
+    '#title' => t('Text Color'),
+    '#options' => $color,
+    '#default_value' => isset($attrs['p_color']) ? $attrs['p_color'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>'
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_parallax($attrs, $text) {
+  $attrs['class'] = (isset($attrs['class']) ? $attrs['class'] : '') . (isset($attrs['color']) ? ' ' . $attrs['color'] : '') . ' page-header overflow-hidden';
+  $attrs['class'] .= (isset($attrs['full_height']) && $attrs['full_height']) ? ' full-height': '';
+  $attrs['class'] .= isset($attrs['overlay']) && $attrs['overlay'] ? ' ' . $attrs['overlay'] : '';
+  $attrs['bg_effect'] = isset($attrs['bg_effect']) ? $attrs['bg_effect'] : t(' - None - ');
+  if (isset($attrs['height_percent']) && $attrs['height_percent'] && (!isset($attrs['full_height']) || !$attrs['full_height'])) {
+    $attrs['style_height'] = $attrs['height_percent'] . 'vh';
+  }
+  if (isset($attrs['fid']) && !empty($attrs['fid'])) {
+    $attrs['style_background-image'] = $attrs['fid'];
+  }
+  $attrs['id'] = isset($attrs['id']) ? $attrs['id'] : ('home-section' . rand(1, 9999));
+
+  $text .= isset($attrs['scroll_icon']) && $attrs['scroll_icon'] ? '<span class="scroll-down-arrow in-page-scroll" data-start="display: inline-block" data-100-start="display: none"><a href="#scroll" class="ci-icon-uniE930 init-animation-2 delay1-8s"></a></span>' : '';
+  switch($attrs['bg_effect']) {
+    case t(' - None - '):
+      $attrs['class'] .= ' parallax-hero';
+      if (isset($attrs['vertical_align']) && $attrs['vertical_align']) {
+        $text = '<div class = "vertical-align">' . $text . '</div>';
+      }
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        ' . $text . '
+      </section>';
+      break;
+    case t('Flat Surface Shader'):
+      $attrs['class'] .= ' parallax-hero overflow-hidden';
+      $text = '<div class = "table"><div class = "table-cell"><div id="fss" class="fss full-screen"></div>' . $text . '</div></div>';
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        <div class="full-screen" data-top="transform: translate3d(0px, 0px, 0px)" data-top-bottom="transform: translate3d(0px, 200px, 0px)" data-anchor-target="#' . $attrs['id'] . '">
+          ' . $text . '
+        </div>
+      </section>';
+      break;
+    case t('Particle Ground'):
+      $attrs['class'] .= ' parallax-hero';
+      $text = '<div class = "table"><div class = "table-cell">' . $text . '</div></div>';
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        <div class="full-screen" data-top="transform: translate3d(0px, 0px, 0px)" data-top-bottom="transform: translate3d(0px, 300px, 0px)" data-anchor-target="#' . $attrs['id'] . '">
+          <div id="particles" class="particles"></div>
+          <div id="particles-c" class="particles particles-c"></div>
+          ' . $text . '
+        </div>
+      </section>';
+      break;
+    case t('Particle Ground - Parallax Video'):
+      $attrs['class'] = str_replace('overlay', '', $attrs['class']);
+      //$attrs['class'] .= ' overflow-hidden';
+      $attrs['class'] .= (isset($attrs['full_height']) && $attrs['full_height']) ? ' full-screen': '';
+      $text = '<div class = "table"><div class = "table-cell">' . $text . '</div></div>';
+      $file = isset($attrs['bg_fid']) && !empty($attrs['bg_fid']) ? file_load($attrs['bg_fid']) : '';
+      if (!isset($file->uri)) {
+        return;
+      }
+      $filepath = file_create_url($file->uri);
+      $type = substr($filepath, strrpos($filepath, '.') + 1);
+      $filename = substr($filepath, 0, strrpos($filepath, '.') );
+      $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+      $poster = '';
+      if (isset($file->uri)) {
+        unset($attrs['style_background-image']);
+        $filepath = file_create_url($file->uri);
+        $poster = ', poster: ' . substr($filepath, 0, strrpos($filepath, '.'));
+      }
+      $class = isset($attrs['overlay']) && $attrs['overlay'] ? ' ' . $attrs['overlay'] : '';
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        <div class="video-background parallax-hero full-screen ' . $class .'" data-top="transform: translate3d(0px, 0px, 0px)" data-vide-bg="' . $type . ': ' . $filename . $poster . '" data-vide-options="position: 50% 50%" data-top-bottom="transform: translate3d(0px, 300px, 0px)" data-anchor-target="#' . $attrs['id'] . '">
+          ' . (isset($attrs['bg_animation']) && $attrs['bg_animation'] ? '<div id="particles-js" class="particles-js"></div>' : '') . '
+          ' . $text . '
+        </div>
+      </section>';
+      break;
+    case t('Flat Surface Shader - Special'):
+      $text = '<div class = "table"><div class = "table-cell"><div id="fss-solid" class="fss-solid zoom-hero overlay" data-top="transform: scale3d(1, 1, 1);" data-top-bottom="transform: scale3d(2, 2, 1)" style = "height: 100vh;"></div>
+' . $text . '</div></div>';
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        ' . $text . '
+      </section>';
+      break;
+    case t('Spooky jungle'):
+      $attrs['class'] .= ' parallax-hero';
+      $text = '<div class="hero-clouds"></div><div class = "table"><div class = "table-cell">' . $text . '</div></div>';
+      $style = isset($attrs['style_height']) ? 'style = "height: ' . $attrs['style_height'] . '"' : '';
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        <div class="full-screen" data-top="transform: translate3d(0px, 0px, 0px)" data-top-bottom="transform: translate3d(0px, 200px, 0px)" data-anchor-target="#' . $attrs['id'] . '" '  . $style . '>
+          ' . $text . '
+        </div>
+      </section>';
+      break;
+    case t('Blur on Scroll'):
+      $attrs['class'] .= ' full-screen';
+      $style = isset($attrs['style_height']) ? 'style = "height: ' . $attrs['style_height'] . '"' : '';
+      if (isset($attrs['fid']) && !empty($attrs['fid'])) {
+        $inner_attrs['style_background-image'] = $attrs['fid'];
+        unset($attrs['style_background-image']);
+      }
+      if (isset($attrs['vertical_align']) && $attrs['vertical_align']) {
+        $text = '<div class = "vertical-align">' . $text . '</div>';
+      }
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        <div id="blur" ' . _volar_shortcodes_shortcode_attributes($inner_attrs) . ' class=" zoom-hero full-screen overlay" data-blur="5px" data-anchor-target="#' . $attrs['id'] . '" '  . $style . '></div>
+          <div class = "animate-slider">
+            ' . $text . '
+          </div>
+      </section>';
+      break;
+    case t('Zoom out on scroll'):
+      $style = isset($attrs['style_height']) ? 'style = "height: ' . $attrs['style_height'] . '"' : '';
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+      <div class=" zoom-hero full-screen" data-top="transform: scale3d(1,1,1)" data-top-bottom="transform: scale3d(.75,.75,1)" data-anchor-target="#' . $attrs['id'] . '" '  . $style . '>
+          ' . $text . '
+        </div>
+      </section>';
+      break;
+     case t('Fold up on scroll'):
+      if (isset($attrs['vertical_align']) && $attrs['vertical_align']) {
+        $text = '<div class = "table"><div class = "table-cell">' . $text . '</div></div>';
+      }
+      $style = isset($attrs['style_height']) ? 'style = "height: ' . $attrs['style_height'] . '"' : '';
+      $attrs['class'] .= ' perspect';
+      $attrs['class'] = str_replace('overlay', '', $attrs['class']);
+      $inner_attrs = array();
+      if (isset($attrs['fid']) && !empty($attrs['fid'])) {
+        $inner_attrs['style_background-image'] = $attrs['fid'];
+        unset($attrs['style_background-image']);
+      }
+      $inner_attrs['class'] = 'zoom-hero';
+      $inner_attrs['class'] .= isset($attrs['full_height']) && $attrs['full_height'] ? ' full-screen': '';
+      $inner_attrs['class'] .= isset($attrs['overlay']) && $attrs['overlay'] ? ' ' . $attrs['overlay'] : '';
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+      <div ' . _volar_shortcodes_shortcode_attributes($inner_attrs) . ' data-top="transform: rotateX(0deg)" data-top-bottom="transform:  rotateX(+110deg)" data-anchor-target="#' . $attrs['id'] . '" '  . $style . '>
+          ' . $text . '
+        </div>
+      </section>';
+      break;
+    case t('Zoom out on scroll, Scaled'):
+      $attrs['class'] .= ' overflow-hidden';
+      $style = isset($attrs['style_height']) ? 'style = "height: ' . $attrs['style_height'] . '"' : '';
+      if (isset($attrs['vertical_align']) && $attrs['vertical_align']) {
+        $text = '<div class = "vertical-align">' . $text . '</div>';
+      }
+      $attrs['class'] = str_replace('overlay', '', $attrs['class']);
+      $inner_attrs = array();
+      if (isset($attrs['fid']) && !empty($attrs['fid'])) {
+        $inner_attrs['style_background-image'] = $attrs['fid'];
+        unset($attrs['style_background-image']);
+      }
+      $class = isset($attrs['overlay']) && $attrs['overlay'] ? ' ' . $attrs['overlay'] : '';
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        <div ' . _volar_shortcodes_shortcode_attributes($inner_attrs) . ' class="zoom-hero scaled-up full-screen' . $class . '" data-top="transform: scale3d(1.4, 1.4, 1);" data-top-bottom="transform: scale3d(1, 1, 1)" data-anchor-target="#' . $attrs['id'] . '" '  . $style . '>
+        </div>
+        ' . $text . '
+      </section>';
+      break;
+    case t('Youtube Background'):
+      $youtube_id = substr($attrs['youtube_url'], strpos($attrs['youtube_url'], '?v=') + 3);
+      $style = isset($attrs['style_height']) ? 'style = "height: ' . $attrs['style_height'] . '"' : '';
+      if (isset($attrs['vertical_align']) && $attrs['vertical_align']) {
+        $text = '<div class = "hs-content full-screen"><div class = "hs-content-inner">' . $text . '</div></div>';
+      }
+      $attrs['class'] = str_replace('overlay', '', $attrs['class']);
+      $inner_attrs = array();
+      if (isset($attrs['fid']) && !empty($attrs['fid'])) {
+        $inner_attrs['style_background-image'] = $attrs['fid'];
+        unset($attrs['style_background-image']);
+      }
+      $bg_id = 'youtube-bg-' . rand(1, 9999);
+      $class = isset($attrs['overlay']) && $attrs['overlay'] ? ' ' . $attrs['overlay'] : '';
+      $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        <div id="' . $bg_id .'" class="youtube-bg ' . $class . ' full-screen" ' . _volar_shortcodes_shortcode_attributes($inner_attrs) . ' ' . $style . '></div>
+        <a id="video" class="player" data-property="{videoURL:\'' . $youtube_id . '\',containment:\'#' . $bg_id . '\', showControls:false, showYTLogo:true,  autoPlay:true, loop:true, mute:true, startAt:0, stopAt:14, opacity:1, addRaster:false, quality:\'default\'}">' . t('Video') . '</a>
+        ' . $text . '
+      </section>';
+      break;
+  }
+  if (isset($attrs['overlay']) && $attrs['overlay'] == 'light overlay') {
+    $output = '<div class = "light">' . $output . '</div>';
+  }
+  $output .= isset($attrs['scroll_icon']) && $attrs['scroll_icon'] ? '<span id = "scroll"></span>' : ''; 
+  return $output;
+}
+
+function volar_shortcodes_shortcode_parallax_settings($attrs, $text) {
+  $filename = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid'])->uri :'';
+  $image = $filename ? theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $filename)) : '';
+  $form['fid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Image'),
+    '#default_value' => isset($attrs['fid']) ? $attrs['fid'] : '',
+    '#attributes' => array('class' => array('image-media-upload hidden')),
+    '#field_suffix' => '<div class = "preview-image">' . $image . '</div><a href = "#" class = "media-upload button">' . t('Upload Image') .'</a><a href = "#" class = "media-remove button">' . t('Remove Image') .'</a>',
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['full_height'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Full Height'),
+    '#default_value' => isset($attrs['full_height']) ? $attrs['full_height'] : FALSE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['height_percent'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Height, %'),
+    '#default_value' => isset($attrs['height_percent']) ? $attrs['height_percent'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+    '#states' => array(
+      'visible' => array(
+        'input[name="full_height"]' => array('checked' => FALSE)
+      )
+    )
+  );
+  $overlays = array('' => t(' - None - '), 'overlay' => t('Dark'), 'light overlay' => t('White'));
+  $form['overlay'] = array(
+    '#type' => 'select',
+    '#title' => t('Overlay'),
+    '#options' => $overlays,
+    '#default_value' => isset($attrs['overlay']) ? $attrs['overlay'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+  );
+  $form['vertical_align'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Vertical Aligned'),
+    '#default_value' => isset($attrs['vertical_align']) ? $attrs['vertical_align'] : TRUE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['scroll_icon'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Scroll Icon'),
+    '#default_value' => isset($attrs['scroll_icon']) ? $attrs['scroll_icon'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $bg_effects = array(t(' - None - '), t('Flat Surface Shader'), t('Particle Ground'), t('Particle Ground - Parallax Video'), t('Flat Surface Shader - Special'), t('Spooky jungle'), t('Blur on Scroll'), t('Zoom out on scroll'), t('Fold up on scroll'), t('Zoom out on scroll, Scaled'), t('Youtube Background'));
+  $form['bg_effect'] = array(
+    '#type' => 'select',
+    '#title' => t('BG Effect'),
+    '#options' => array_combine($bg_effects, $bg_effects),
+    '#default_value' => isset($attrs['bg_effect']) ? $attrs['bg_effect'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['bg_animation'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('BG Animation'),
+    '#default_value' => isset($attrs['bg_animation']) ? $attrs['bg_animation'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+    '#states' => array('visible' => array(
+      'select[name="bg_effect"]' => array('value' => t('Particle Ground - Parallax Video')),
+    )),
+  );
+  $filename = isset($attrs['bg_fid']) && !empty($attrs['bg_fid']) ? file_load($attrs['bg_fid'])->uri :'';
+  $image = $filename ? theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $filename, 'alt' => $filename)) : '';
+  $form['bg_fid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Background Video'),
+    '#default_value' => isset($attrs['bg_fid']) ? $attrs['bg_fid'] : '',
+    '#attributes' => array('class' => array('image-media-upload hidden')),
+    '#field_suffix' => '<div class = "preview-image">' . $image . '</div><a href = "#" class = "media-upload button">' . t('Upload Video') .'</a><a href = "#" class = "media-remove button">' . t('Remove Video') .'</a>',
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#states' => array('visible' => array(
+      'select[name="bg_effect"]' => array('value' => t('Particle Ground - Parallax Video')),
+    )),
+  );
+  $form['youtube_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Youtube URL'),
+    '#default_value' => isset($attrs['youtube_url']) ? $attrs['youtube_url'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+    '#description' => t('Example of url: https://www.youtube.com/watch?v=70QxE3zJM_8'),
+    '#states' => array(
+      'visible' => array(
+        'select[name="bg_effect"]' => array('value' => t('Youtube Background')),
+      )
+    )
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_text_rotator($attrs, $text) {
+  $attrs['class'] = 'cd-headline ';
+  $attrs['class'] .= isset($attrs['type']) ? $attrs['type'] : 'rotate-2';
+  $text = '<span class="cd-words-wrapper">';
+  $i = 0;
+  while (isset($attrs['text_line_' . ++$i])) {
+    $text .= '<b'. ($i == 1 ? ' class = "is-visible"' : '') . '>' . $attrs['text_line_' . $i] . "</b>";
+  }
+  $text .= '</span>';
+  return '<span ' . _volar_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</span>';
+}
+
+function volar_shortcodes_shortcode_text_rotator_settings($attrs, $text, $form, &$form_state) {
+  if(isset($form_state['values'])) {
+    $attrs = $form_state['values'];
+  }
+  // Ajax handled Items
+  $form['items'] = array(
+    '#type' => 'container',
+    '#attributes' => array('id' => array('nd_visualshortcodes_text_rotator')),
+  );
+
+  $attrs['text_line_1'] = isset($attrs['text_line_1']) ? $attrs['text_line_1'] : '';
+
+  $i = 0;
+  while (isset($attrs['text_line_' . ++$i])) {
+    $form['items'] += volar_shortcodes_shortcode_text_rotator_item($attrs, $i);
+  }   
+
+  // Add new row
+  if($form_state['values']['op'] == t('Add new row')) {
+    $form['items'] += volar_shortcodes_shortcode_text_rotator_item($attrs, $i);
+  }
+
+  $form['add_new'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add new row'),
+    '#submit' => array('volar_shortcodes_shortcode_ajax_rebuild'),
+    '#ajax' => array(
+      'callback' => 'volar_shortcodes_shortcode_list_ajax_callback',
+      'wrapper' => 'nd_visualshortcodes_text_rotator',
+      'effect' => 'fade',
+      'method' => 'replace',
+    )
+  );
+
+  $types = array('letters rotate-2' => t('Rotate'), 'letters rotate-3' => t('Side Rotate'), 'letters scale' => t('Scale'), 'is-full-width clip' => t('Clip'));
+  $form['type'] = array(
+    '#title' => t('Rotate Type'),
+    '#type' => 'select',
+    '#options' => $types,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : 'rotate-2',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+    '#suffix' => '</div></div>'
+  );
+
+  return $form;
+}
+
+function volar_shortcodes_shortcode_text_rotator_item($attrs, $i) {
+  $form['text_line_' . $i] = array(
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['text_line_' . $i]) ? $attrs['text_line_' . $i] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_ajax_rebuild($form, &$form_state) {
+  $form_state['rebuild'] = TRUE;
+}
+
+function volar_shortcodes_shortcode_list_ajax_callback($form, $form_state) {
+  return $form['shortcode']['settings']['items'];
+}
+
+function volar_shortcodes_shortcode_title($attrs, $text) {
+  $attrs['class'] = isset($attrs['title_style']) ? $attrs['title_style'] : '';
+  $attrs['class'] .= isset($attrs['font_color']) ? ' ' . $attrs['font_color'] : '';
+  $attrs['class'] .= isset($attrs['text_mask']) && $attrs['text_mask'] ? ' text-mask' : '';
+  $tag = isset($attrs['tag']) ? $attrs['tag'] : 'h3';
+  $title = isset($attrs['title_bold_before']) ? '<span>' . $attrs['title_bold_before'] . '</span>' : '';
+  $title .= isset($attrs['title']) ? $attrs['title']  : '';
+  $title .= isset($attrs['title_bold_after']) ? '<span>' . $attrs['title_bold_after'] . '</span>' : '';
+  $text = '<'. $tag . ' ' . _volar_shortcodes_shortcode_attributes($attrs) . '>' . $title . $text . '</' . $tag . '>';
+  if(isset($attrs['align']) && $attrs['align']) {
+    $text = '<div class = "' . $attrs['align'] . '">' . $text . '</div>';
+  }
+  return $text;
+}
+
+function volar_shortcodes_shortcode_title_settings($attrs, $text) {
+  $form['title_bold_before'] = array(
+    '#title' => t('Title Bold Before'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title_bold_before']) ? $attrs['title_bold_before'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['title'] = array(
+    '#title' => t('Title'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+  );
+  $form['title_bold_after'] = array(
+    '#title' => t('Title Bold After'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title_bold_after']) ? $attrs['title_bold_after'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  $tag = array('h1' => t('H1'), 'h2' => t('H2'), 'h3' => t('H3'), 'h4' => t('H4'), 'h5' => t('H5'), 'h6' => t('H6'));
+  $form['tag'] = array(
+    '#title' => t('Tag'),
+    '#type' => 'select',
+    '#options' => $tag,
+    '#default_value' => isset($attrs['tag']) ? $attrs['tag'] : 'h4',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $title_style = array('' => t('Default'), 'hs-text-10' => t('100px 100weight'), 'hs-text-11' => t('96px 700weight'), 'hs-text-2 font-second' => t('90px 900weight'), 'hs-text-12' => t('54px'), 'hs-text-4' => t('36px 900weight'), 'hs-text-14' => t('32px'), 'hs-text-5' => t('21px 300weight'), 'hs-text-6' => t('14px 400weight'), 'hs-text-8 transparent' => t('12px'), 'hs-text-detail' => t('11px 500weight'));
+  $form['title_style'] = array(
+    '#title' => t('Style'),
+    '#type' => 'select',
+    '#options' => $title_style,
+    '#default_value' => isset($attrs['title_style']) ? $attrs['title_style'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+  );
+  $align = array('text-left' => t('Left'), 'text-center' => t('Center'), 'text-right' => t('Right'));
+  $form['align'] = array(
+    '#type' => 'select',
+    '#title' => t('Align'),
+    '#options' => $align,
+    '#default_value' => isset($attrs['align']) ? $attrs['align'] : 'text-center',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  $font_color = array('' => t('Default'), 'f-white' => t('White'), 'f-black' => t('Black'));
+  $form['font_color'] = array(
+    '#title' => t('Font Color'),
+    '#type' => 'select',
+    '#options' => $font_color,
+    '#default_value' => isset($attrs['font_color']) ? $attrs['font_color'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['text_mask'] = array(
+    '#title' => t('Text Mask'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['text_mask']) ? $attrs['text_mask'] : FALSE,
+    '#description' => t('White background and transparent words'),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_title_section($attrs, $text) {
+  $attrs['class'] = 'section-title ';
+  $attrs['class'] .= isset($attrs['font_color']) ? $attrs['font_color'] : '';
+  $tag = isset($attrs['tag']) ? $attrs['tag'] : 'h3';
+  $text = '<'. $tag . ' ' . _volar_shortcodes_shortcode_attributes($attrs) . '>' . (isset($attrs['title']) ? $attrs['title']  : '' ). $text . '</' . $tag . '>';
+  $title_left = isset($attrs['title_left']) ? $attrs['title_left'] : '';
+  $title_right = isset($attrs['title_right']) ? $attrs['title_right'] : '';
+  $output = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+    ' . (isset($attrs['title_small']) ? '<div class="section-title-more">' . $attrs['title_small'] . '</div>' : '') . '
+    <div>
+      <h2 class="section-title-heading">
+        ' . (isset($attrs['bold_left']) && $attrs['bold_left'] ? '<span>' . $title_left . '</span>' : $title_left). '
+        ' . (isset($attrs['bold_right']) && $attrs['bold_right'] ? '<span>' . $title_right . '</span>' : $title_right). '
+      </h2>
+    </div>
+  </div>';
+  return $output;
+}
+
+function volar_shortcodes_shortcode_title_section_settings($attrs, $text) {
+  $form['title_small'] = array(
+    '#title' => t('Title Top Small'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title_small']) ? $attrs['title_small'] : '',
+    '#attributes' => array('class' => array('form-control')),
+  );
+  $form['title_left'] = array(
+    '#title' => t('Title Left'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title_left']) ? $attrs['title_left'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['title_right'] = array(
+    '#title' => t('Title Right'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title_right']) ? $attrs['title_right'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>'
+  );
+  $form['bold_left'] = array(
+    '#title' => t('Bold Left Title'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['bold_left']) ? $attrs['bold_left'] : FALSE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['bold_right'] = array(
+    '#title' => t('Bold Right Title'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['bold_right']) ? $attrs['bold_right'] : FALSE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>'
+  );
+  $font_color = array('' => t('Default'), 'f-white' => t('White'), 'f-black' => t('Black'));
+  $form['font_color'] = array(
+    '#title' => t('Font Color'),
+    '#type' => 'select',
+    '#options' => $font_color,
+    '#default_value' => isset($attrs['font_color']) ? $attrs['font_color'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+    '#suffix' => '</div></div>'
+  );
+
+  return $form;
+}
+
+function volar_shortcodes_shortcode_progress($attrs, $text) {
+  $attrs['class'] = 'skillbar-container';
+  $percent = isset($attrs['percent']) && $attrs['percent'] ? $attrs['percent'] . '%': 0;
+  $output = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+    <p class="skillbar-title">' . (isset($attrs['title']) ? $attrs['title'] : '') . '
+        <span>' . $percent . '</span>
+    </p>
+    <div class="skillbar">
+        <div class="skillbar-bar" data-percent="' . $percent . '"></div>
+    </div>
+  </div>';
+  return $output;
+}
+
+function volar_shortcodes_shortcode_progress_settings($attrs, $text) {
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['percent'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Percent'),
+    '#default_value' => isset($attrs['percent']) ? $attrs['percent'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_quote($attrs, $text) {
+  $attrs['class'] = isset($attrs['type']) ? $attrs['type'] : '';
+  $text .= '<footer>' . 
+    (isset($attrs['footer']) ? $attrs['footer'] : '') . 
+    (isset($attrs['cite']) ? ' <cite title="' . $attrs['cite'] . '">' . $attrs['cite'] . '</cite>' : '') . 
+  '</footer>';
+  $output = '<blockquote ' . _volar_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</blockquote>';
+  return $output;  
+}
+
+function volar_shortcodes_shortcode_quote_settings($attrs, $text) {
+  $type = array('' => t('Center Aligned'), 'about-quote' => t('Left Aligned'), 'blog-left-border' => t('Left Aligned Left Border'));
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Type'),
+    '#options' => $type,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  $form['footer'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Author'),
+    '#default_value' => isset($attrs['footer']) ? $attrs['footer'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['cite'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Description'),
+    '#default_value' => isset($attrs['cite']) ? $attrs['cite'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;  
+}
+
+function volar_shortcodes_shortcode_quote_description($attrs, $text) {
+  $form = volar_shortcodes_shortcode_quote_settings($attrs, $text);
+  $type = array('' => t('Center Aligned'), 'about-quote' => t('Left Aligned'), 'blog-left-border' => t('Left Aligned Left Border'));
+  return $type[$form['type']['#default_value']];
+}
+
+function volar_shortcodes_shortcode_bg($attrs, $text) {
+  $attrs['class'] = isset($attrs['bg_color']) ? $attrs['bg_color'] : '';
+  $output = '';
+  if (isset($attrs['go_top']) && $attrs['go_top']) {
+    $output .= '<div id="go-top" class="go-top in-page-scroll go-top-out">
+      <div class="circle1"></div>
+      <a href="#top" class="square"><span></span></a>
+      <div class="rectangle"></div>
+      <div class="circle2"></div>
+    </div>';
+  }
+  $output .= '<div ' . _volar_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</div>';
+  return $output;  
+}
+
+function volar_shortcodes_shortcode_bg_settings($attrs, $text) {
+  $bg_color = array('facts-section' => t('Grey'), 'footer-section' => t('Footer Dark'), 'footer-section light-footer' => t('Footer Light'), 'footer-bottom' => t('Footer Copyright (should be inside Footer)'));
+  $form['bg_color'] = array(
+    '#type' => 'select',
+    '#title' => t('BG Color'),
+    '#options' => $bg_color,
+    '#default_value' => isset($attrs['bg_color']) ? $attrs['bg_color'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['go_top'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Go to Top Icon'),
+    '#options' => $go_top,
+    '#default_value' => isset($attrs['go_top']) ? $attrs['go_top'] : '',
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+    '#states' => array('visible' => array(
+      'select[name="bg_color"]' => array('value' => 'footer-bottom'),
+    )),
+  );
+  return $form;  
+}
+
+function volar_shortcodes_shortcode_fact($attrs, $text) {
+  $attrs['class'] = 'fact-item' . (isset($attrs['centered']) && $attrs['centered'] ? ' text-center' : '');
+  $output = '<div ' . _volar_shortcodes_shortcode_attributes($attrs)  . '>' .
+    (isset($attrs['number']) ? '<div class="fact-number font-second"><p class="counter">' . $attrs['number'] . '</p></div>' : '') .
+    (isset($attrs['title'])  && $attrs['title']? '<div class="fact-text"><p>' . $attrs['title'] . '</p></div>' : '') . '
+  </div>';
+  return $output;
+}
+
+function volar_shortcodes_shortcode_fact_settings($attrs, $text) {
+  $form['title'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Title'),
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['number'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Number'),
+    '#default_value' => isset($attrs['number']) ? $attrs['number'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['centered'] = array(
+    '#type' => 'checkbox' ,
+    '#title' => t('Centered'),
+    '#default_value' => isset($attrs['centered']) ? $attrs['centered'] : TRUE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+
+function volar_shortcodes_shortcode_service($attrs, $text) {
+  switch($attrs['type']) {
+    case 'flipped':
+      $attrs['class'] = 'services-section-item margin-bottom-xs-40';
+      $icon = isset($attrs['icon']) ? '<i class="' . $attrs['icon'] . '"></i>' : '';
+      $text = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        <div class="services-section-item-icon">
+          ' . $icon . '
+        </div>
+        ' . (isset($attrs['text']) ? '<h4 class="services-item-title font-second">' . $attrs['text'] . '</h4>' : '') . '
+        <div class="services-section-item-text">
+          ' . $text . '
+        </div>
+      </div>';
+      break;
+    case 'icon_text':
+      $attrs['class'] = 'contact-item margin-bottom-xs-40';
+      $icon = isset($attrs['icon']) ? '<i class="' . $attrs['icon'] . '"></i>' : '';
+      $text = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+        ' . $icon . '
+        ' . $text . '
+      </div>';
+      break;
+  }
+  return $text;
+}
+
+function volar_shortcodes_shortcode_service_settings($attrs, $text) {
+  $types = array('flipped' => t('Icon, Title and Flipped text'), 'icon_text' => t('Icon and Text'));
+  $form['type'] = array(
+    '#title' => t('Type'),
+    '#type' => 'select',
+    '#options' => $types,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['icon'] = array(
+    '#title' => t('Icon'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/volar_shortcodes/icons_autocomplete',
+    '#default_value' => isset($attrs['icon']) ? $attrs['icon'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>'
+  );
+  $form['text'] = array(
+    '#title' => t('Title'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['text']) ? $attrs['text'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#description' => t('Inner content can be added as child to this shortcode, for example via HTML shortcode'),
+    '#suffix' => '</div></div>',
+    '#states' => array('visible' => array(
+      'select[name="type"]' => array('value' => 'flipped'),
+    )),
+  );
+  return $form;
+}
+
+
+function volar_shortcodes_shortcode_video($attrs, $text) {
+  $attrs['url'] = isset($attrs['url']) && $attrs['url'] ? $attrs['url'] : $text;
+  $iframe_attrs = (isset($attrs['width']) ? 'width="' . $attrs['width'] .'"' : '') . (isset($attrs['height']) ? ' height ="' . $attrs['height'] . '"' : '');
+  if(!$iframe_attrs) {
+    $attrs['class'] = ' embed-responsive embed-responsive-16by9';
+  }
+  if(strpos($attrs['url'], 'vimeo') !== FALSE) {
+    $attrs['class'] .= ' vimeo';
+    preg_match('|/(\d+)|', $attrs['url'], $matches);
+    $video_url = '//player.vimeo.com/video/' . $matches[1] . '';
+  }
+  elseif(strpos($attrs['url'], 'youtube') !== FALSE) {
+    $attrs['class'] .= ' youtube';
+    $id = substr($attrs['url'], strpos($attrs['url'], '?v=') + 3);
+    $video_url = '//www.youtube.com/embed/' . $id;
+  }
+  $text = '<div  ' . _volar_shortcodes_shortcode_attributes($attrs)  . '>
+    <iframe src="' . $video_url . '" ' . $iframe_attrs . '  frameborder="0" webkitallowfullscreen="" mozallowfullscreen="" allowfullscreen=""></iframe>
+  </div>';
+  return $text;
+}
+
+function volar_shortcodes_shortcode_video_settings($attrs, $text) {
+  $attrs['url'] = isset($attrs['url']) && $attrs['url'] ? $attrs['url'] : $text;
+  $form['url'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Video Url'),
+    '#default_value' => isset($attrs['url']) ? $attrs['url'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#description' => t('Supports: YouTube and Vimeo')
+  );
+  $form['width'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Width'),
+    '#default_value' => isset($attrs['width']) ? $attrs['width'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['height'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Height'),
+    '#default_value' => isset($attrs['height']) ? $attrs['height'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_image($attrs, $text) {
+  $attrs['class'] = 'inline-block';
+  $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+  $uri = isset($file->uri) ? $file->uri : '';
+  if(!$uri) {
+    return '';
+  }
+  $title = isset($attrs['title']) ? $attrs['title'] : '';
+  $attributes = array('class' => array('img-responsive'), 'style' => '');
+  if(isset($attrs['width']) && $attrs['width']) {
+    $attributes['style'] .= 'width:' . $attrs['width'] . 'px;';
+  }
+  if(isset($attrs['height']) && $attrs['height']) {
+    $attributes['style'] .= 'height:' . $attrs['height'] . 'px;';
+  }
+  if(isset($attrs['image_style']) && $attrs['image_style']) {
+    $img = theme('image_style', array('style_name' => $attrs['image_style'], 'title' => '', 'path' => $uri, 'attributes' => $attributes));
+  }
+  else {
+    $img = theme('image', array('title' => '', 'path' => $uri, 'attributes' => $attributes));
+  }
+  $attrs['href'] = isset($attrs['link']) && $attrs['link'] ? $attrs['link'] : '';
+  $text = $attrs['href'] ? '<a ' . _volar_shortcodes_shortcode_attributes($attrs) . '>' . $img . '</a>' : '<span ' . _volar_shortcodes_shortcode_attributes($attrs) . '>' . $img . '</span>';
+  return $text;
+}
+
+function volar_shortcodes_shortcode_image_preview($attrs, $text) {
+  return volar_shortcodes_shortcode_image($attrs, $text);
+}
+
+function volar_shortcodes_shortcode_image_settings($attrs, $text) {
+  $filename = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid'])->uri :'';
+  $image = $filename ? theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $filename)) : '';
+  $form['fid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Image'),
+    '#default_value' => isset($attrs['fid']) ? $attrs['fid'] : '',
+    '#attributes' => array('class' => array('image-media-upload hidden')),
+    '#field_suffix' => '<div class = "preview-image">' . $image . '</div><a href = "#" class = "media-upload button">' . t('Upload Image') .'</a><a href = "#" class = "media-remove button">' . t('Remove Image') .'</a>',
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $styles = array('' => t(' - Original - '));
+  foreach(image_styles() as $name => $style) {
+    $styles[$name] = $style['label'];
+  }
+  $form['image_style'] = array(
+    '#type' => 'select',
+    '#title' => t('Image Style'),
+    '#options' => $styles,
+    '#default_value' => isset($attrs['image_style']) ? $attrs['image_style'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $aligns = array('' => t(' - None - '), 'center' => t('Center'), 'left' => t('Left'), 'right' => t('Right'));
+  $form['style_align'] = array(
+    '#type' => 'select',
+    '#title' => t('Align'),
+    '#options' => $aligns,
+    '#default_value' => isset($attrs['align']) ? $attrs['align'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $form['link'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Link'),
+    '#default_value' => isset($attrs['link']) ? $attrs['link'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['width'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Width'),
+    '#default_value' => isset($attrs['width']) ? $attrs['width'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['height'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Height'),
+    '#default_value' => isset($attrs['height']) ? $attrs['height'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_button($attrs, $text) {
+  $attrs['class'] = 'btn btn-split ripple-alone btn-animated ';
+  $attrs['class'] .= isset($attrs['button_type']) ? $attrs['button_type'] . ' ' : '';
+  $attrs['link'] = isset($attrs['link']) ? $attrs['link'] : '#';
+  $attrs['data-text'] = isset($attrs['text']) ? $attrs['text'] : '';
+  $attrs['href'] = strpos($attrs['link'], '#') === FALSE ? url($attrs['link']) : $attrs['link'];
+  $text = isset($attrs['text_hover']) ? $attrs['text_hover'] : '';
+  $text = '<a ' . _volar_shortcodes_shortcode_attributes($attrs)  . '><span>' . $text . '</span></a>';
+  $text = (isset($attrs['centered']) && $attrs['centered'] ? '<div class="text-center">' . $text . '</div>' : $text);
+  $text = (isset($attrs['inline']) && $attrs['inline'] ? '<div class="inline-block">' . $text . '</div>' : $text);
+  return $text;
+}
+
+function volar_shortcodes_shortcode_button_settings($attrs, $text) {
+  $button_type = array('btn-default' => t('White'), 'btn-white-transparent' => t('White To Transparent'), 'btn-transparent-white' => t('Transparent to White'), 'btn-dark'=> t('Dark'), 'btn-transparent-dark'=> t('Transparent to Dark'));
+  $form['button_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Color'),
+    '#options' => $button_type,
+    '#default_value' => isset($attrs['button_type']) ? $attrs['button_type'] : 'btn-default',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+
+  $form['centered'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Centered'),
+    '#default_value' => isset($attrs['centered']) ? $attrs['centered'] : TRUE,
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  $form['link'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Link'),
+    '#default_value' => isset($attrs['link']) ? $attrs['link'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['text'] = array(
+    '#title' => t('Text'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['text']) ? $attrs['text'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+  );
+  $form['text_hover'] = array(
+    '#title' => t('Text on Hover'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['text_hover']) ? $attrs['text_hover'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+    '#states' => array('visible' => array(
+      'input[name="animated"]' => array('checked' => TRUE),
+    )),
+  );
+  $form['style_width'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Width'),
+    '#default_value' => isset($attrs['style_width']) ? $attrs['style_width'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['inline'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Inline'),
+    '#default_value' => isset($attrs['inline']) ? $attrs['inline'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+
+  return $form;
+}
+
+function volar_shortcodes_shortcode_hr($attrs, $text) {
+  $text = '<hr ' . _volar_shortcodes_shortcode_attributes($attrs) . '>';
+  return $text;
+}
+
+
+function volar_shortcodes_shortcode_tabs($attrs, $text) {
+  global $tab_content, $tab_counter;
+  $attrs['class'] = 'process-section';
+  $attrs['id'] = 'process-section';
+  $tabs = '<div class="position-relative container padding-bottom-40 padding-top-100 padding-top-sm-120">
+    <ul class="process-labels font-second">' . $text . '</ul>
+    <div class="line-process-parent">
+      <div class="line-process"></div>
+    </div>
+  </div>';  
+  $tab_content = '<div id="process" class="process owl-carousel container">' . $tab_content . '</div>';
+  $text = '<div ' . _volar_shortcodes_shortcode_attributes($attrs)  . '>' . $tabs . $tab_content. '</div>';
+  $tab_content = '';
+  $tab_counter = 0;
+  return $text;
+}
+
+function volar_shortcodes_shortcode_tab($attrs, $text) {
+  global $tab_counter, $tab_content;
+  $tab_counter++;
+  $icon = isset($attrs['icon']) ? '<i class = "' . $attrs['icon'] .'"><i class = "' . $attrs['icon'] .' icon-shade"></i></i>' : '';
+  $title = isset($attrs['title']) ? $attrs['title'] : '';
+  $output = '<li data-que="' . $tab_counter . '" class="wow fadeInDown' . (isset($attrs['active']) && $attrs['active'] ? ' process-label-active' : '') . ' " data-wow-offset="100" data-wow-delay="' . ($tab_counter * 0.15) . 's">
+    ' . $icon . '
+    <span data-active="' . $title . '"> ' . $title . '</span>
+  </li>';
+  // Render Content
+  $attrs['id'] = 'tab-' . $tab_counter;
+  $attrs['class'] = 'process-item section-text';
+  $tab_content .= '<div ' . _volar_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</div>';
+
+  return $output;
+}
+
+function volar_shortcodes_shortcode_tab_settings($attrs, $text) {
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['icon'] = array(
+    '#title' => t('Icon'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/volar_shortcodes/icons_autocomplete',
+    '#default_value' => isset($attrs['icon']) ? $attrs['icon'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['active'] = array(
+    '#title' => t('Active'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['active']) ? $attrs['active'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>'
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_slider($attrs, $text) {
+  $attrs['class'] = isset($attrs['control_color']) ? $attrs['control_color'] : '';
+  switch($attrs['type']) {
+    case 'single':
+      $attrs['class'] .= ' testimonials owl-carousel carousel';
+      $attrs['id'] = 'testimonials';
+      break;
+    case 'multiple':
+      $attrs['class'] .= ' owl-carousel';
+      $attrs['id'] = 'client-logos';
+      break;
+  }
+  return '<div ' . _volar_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</div>';
+}
+
+function volar_shortcodes_shortcode_slider_settings($attrs, $text) {
+  $types = array('single' => t('Item Slider with Controls'), 'multiple' => t('Multiple Items Carousel'));
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Type'),
+    '#options' => $types,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $types = array('' => t('White'), 'light' => t('Dark'));
+  $form['control_color'] = array(
+    '#type' => 'select',
+    '#title' => t('Controls Color'),
+    '#default_value' => isset($attrs['control_color']) ? $attrs['control_color'] : '',
+    '#options' => $types,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_slider_item($attrs, $text) {
+  $attrs['class'] = 'testimo-item';
+  return '<div ' . _volar_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</div>';
+}
+
+function volar_shortcodes_shortcode_pricing_table($attrs, $text) {
+  $attrs['class'] = 'pricing-section';
+  $attrs['class'] .= isset($attrs['active']) && $attrs['active']? ' popular' : '';
+  $button_link = isset($attrs['button_link']) ? $attrs['button_link'] : '#';
+  $button_link = strpos($button_link, '#') === FALSE ? url($button_link) : $button_link;
+  $output = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) . '><div class = "pricing-table">
+    <div class="pricing-header font-second">
+      ' . (isset($attrs['title']) ? '<h3>' . $attrs['title'] . '</h3>' : '') .'
+      <div class="price">
+        ' . (isset($attrs['sign']) ? '<span class="currency">' . $attrs['sign'] . '</span>' : '$') . '
+        ' . (isset($attrs['price']) ? '<span class="value">' . $attrs['price'] . '</span>' : '$') . '
+        ' . (isset($attrs['period']) ? '<span class="duration">' . $attrs['period'] . '</span>' : '$') . '
+      </div>
+    </div>
+    <div class="pricing-body">
+      <ul class="pricing-features">
+        ' . $text . '
+      </ul>
+    </div>
+    <footer class="pricing-footer">
+      <a href="' . $button_link . '" class="hidden-xs btn btn-animated btn-split ripple-alone btn-default" data-text="' . (isset($attrs['button']) ? $attrs['button'] : t('Select')) . '"><span>' . (isset($attrs['button_hover']) ? $attrs['button_hover'] : '') . '</span></a>
+      <a class="select visible-xs" href="' . $button_link . '">
+          <i class="icon ci-icon-uniE890"></i>
+      </a>
+    </footer>
+  </div></div>'; 
+  return $output;
+}
+
+function volar_shortcodes_shortcode_pricing_table_settings($attrs, $text) {
+  $form['title'] = array(
+    '#title' => t('Title'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-9">',
+  );
+  $form['active'] = array(
+    '#title' => t('Active'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['active']) ? $attrs['active'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $form['price'] = array(
+    '#title' => t('Price'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['price']) ? $attrs['price'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['sign'] = array(
+    '#title' => t('Sign'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['sign']) ? $attrs['sign'] : '$',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+  );
+  $form['period'] = array(
+    '#title' => t('Period'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['period']) ? $attrs['period'] : '/mo',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  $form['button'] = array(
+    '#title' => t('Button text'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['button']) ? $attrs['button'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['button_hover'] = array(
+    '#title' => t('Button text hover'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['button_hover']) ? $attrs['button_hover'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+  );
+  $form['button_link'] = array(
+    '#title' => t('Button Link'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['button_link']) ? $attrs['button_link'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>'
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_pricing_item($attrs, $text) {
+  $title = isset($attrs['title_bold_before']) ? '<em>' . $attrs['title_bold_before'] . '</em> ' : '';
+  $title .= isset($attrs['title']) ? $attrs['title']  : '';
+  $title .= isset($attrs['title_bold_after']) ? ' <em>' . $attrs['title_bold_after'] . '</em>' : '';
+  $text = '<li ' . _volar_shortcodes_shortcode_attributes($attrs) . '>' . $title . '</li>';
+  return $text; 
+}
+
+function volar_shortcodes_shortcode_pricing_item_preview($attrs, $text) {
+  return strip_tags(volar_shortcodes_shortcode_pricing_item($attrs, $text));
+}
+
+function volar_shortcodes_shortcode_pricing_item_settings($attrs, $text) {
+  $form['title_bold_before'] = array(
+    '#title' => t('Title Bold Before'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title_bold_before']) ? $attrs['title_bold_before'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['title'] = array(
+    '#title' => t('Title'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+  );
+  $form['title_bold_after'] = array(
+    '#title' => t('Title Bold After'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title_bold_after']) ? $attrs['title_bold_after'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_gmap($attrs, $text) {
+  $attrs['class'] = 'map-section';
+  $attrs['id'] = 'map-section';
+  $text ='<div ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+    ' . (isset($attrs['overlay']) && $attrs['overlay'] ? '
+      <div id="map-opener" class="map-mask">
+        <div class="map-opener">
+            <div class="font-second">' . (isset($attrs['overlay_open_text']) ? t($attrs['overlay_open_text']) : '') . '<i class="ci-icon-uniE930"></i></div>
+            <div class="font-second">' . (isset($attrs['overlay_close_text']) ? t($attrs['overlay_close_text']) : '') . '<i class="ci-icon-uniE92F"></i></div>
+        </div>
+      </div>
+    ' : '' ) . '
+    <div id="google-map">
+      <div id="map-canvas" style="height: ' . (isset($attrs['height']) ? $attrs['height'] : 450) . 'px;"
+        data-address="' . (isset($attrs['address']) ? $attrs['address'] : '') . '"
+        data-zoom="' . (isset($attrs['zoom']) ? $attrs['zoom'] : 6) . '"
+        data-type="' . $attrs['type'] . '"
+        data-marker = "' . base_path() . drupal_get_path('theme', 'volar') . '/img/google-map-assets/map-icon-location">
+      </div>
+      <div id="map-zoom-in"></div>
+      <div id="map-zoom-out"></div>
+    </div>
+  </div>';
+  return $text;
+}
+
+function volar_shortcodes_shortcode_gmap_settings($attrs, $text) {
+  $types = array('roadmap' => t('Roadmap'), 'hybrid' => t('Hybrid'), 'satellite' => t('Satellite'));
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Type'),
+    '#options' => $types,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['overlay'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Overlay Open/Close'),
+    '#default_value' => isset($attrs['overlay']) ? $attrs['overlay'] : TRUE,
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  $form['overlay_open_text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Overlay Open Map Text'),
+    '#default_value' => isset($attrs['overlay_open_text']) ? $attrs['overlay_open_text'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#states' => array(
+      'visible' => array(
+        'input[type="overlay"]' => array('checked' => TRUE)
+      )
+    )
+  );
+  $form['overlay_close_text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Overlay Close Map Text'),
+    '#default_value' => isset($attrs['overlay_close_text']) ? $attrs['overlay_close_text'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+    '#states' => array(
+      'visible' => array(
+        'input[type="overlay"]' => array('checked' => TRUE)
+      )
+    )
+  );
+  $form['address'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Address'),
+    '#default_value' => isset($attrs['address']) ? $attrs['address'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['zoom'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Zoom'),
+    '#default_value' => isset($attrs['zoom']) ? $attrs['zoom'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['height'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Height'),
+    '#default_value' => isset($attrs['height']) ? $attrs['height'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_icon_container($attrs, $text) {
+  $attrs['class'] = isset($attrs['type']) ? $attrs['type'] : '';
+  $output = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) . '>' . $text . '</div>';
+  return $output;
+}
+
+function volar_shortcodes_shortcode_icon_container_settings($attrs, $text) {
+  $types = array('footer-social' => t('Round Grey'));
+  $form['type'] = array(
+    '#title' => t('Type'),
+    '#type' => 'select',
+    '#options' => $types,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  return $form;  
+}
+
+function volar_shortcodes_shortcode_icon($attrs, $text) {
+  $attrs['href'] = isset($attrs['link']) && $attrs['link'] ? $attrs['link'] : '#';
+  $attrs['class'] = isset($attrs['icon']) ? ' ' . $attrs['icon'] : '';
+  if (isset($attrs['blank']) && $attrs['blank']) {
+    $attrs['target'] = '_blank';
+  }
+  $output = '<a ' . _volar_shortcodes_shortcode_attributes($attrs) . '></a>';
+  return $output;
+}
+
+function volar_shortcodes_shortcode_icon_settings($attrs, $text) {
+  $form['icon'] = array(
+    '#title' => t('Icon'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/volar_shortcodes/icons_autocomplete',
+    '#default_value' => isset($attrs['icon']) ? $attrs['icon'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['link'] = array(
+    '#title' => t('Link'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['link']) ? $attrs['link'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>'
+  );
+  $form['blank'] = array(
+    '#title' => t('Open on the new page'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['blank']) ? $attrs['blank'] : TRUE,
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#suffix' => '</div></div>'
+  );
+  return $form;  
+}
+
+function volar_shortcodes_shortcode_breadcrumb($attrs, $text) {
+  $attrs['class'] = isset($attrs['align']) ? ' ' . $attrs['align'] : '';
+  $attrs['class'] .= isset($attrs['bg']) ? ' ' . $attrs['bg'] : '';
+  $output = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) . '>' .    
+    theme('breadcrumb', array('breadcrumb' => drupal_get_breadcrumb())) . '
+  </div>';
+  return $output;
+}
+
+function volar_shortcodes_shortcode_breadcrumb_settings($attrs, $text) {
+  $align = array ('text-left' => t('Left'), 'text-center' => t('Center'), 'text-right' => t('Right'));
+  $form['align'] = array(
+    '#type' => 'select',
+    '#title' => t('Align'),
+    '#options' => $align,
+    '#default_value' => isset($attrs['align']) ? $attrs['align'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+  );
+  $bg = array ('' => t('White'), 'bg-transparent-breadcrumb' => t('Transparent'));
+  $form['bg'] = array(
+    '#type' => 'select',
+    '#title' => t('Background'),
+    '#options' => $bg,
+    '#default_value' => isset($attrs['bg']) ? $attrs['bg'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>'
+  );
+  return $form;
+}
+
+function volar_shortcodes_shortcode_bg_slider($attrs, $text) {
+  global $bg_sliders;
+  $attrs['class'] = 'home-section overflow-hidden ';
+  $attrs['class'] .= isset($attrs['block_height']) ? $attrs['block_height'] : 'full-screen';
+  $inner_class = isset($attrs['block_height']) ? $attrs['block_height'] : 'full-screen';
+  $attrs['id'] = isset($attrs['id']) ? $attrs['id'] : 'bg-section';
+
+  if (isset($attrs['type']) && $attrs['type'] == 'bg-slideshow') {
+    $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+      <div class="' . $inner_class . ' parallax-hero bg-slideshow-wrapper" data-top="transform: translate3d(0px, 0px, 0px)" data-top-bottom="transform: translate3d(0px, 200px, 0px)" data-anchor-target="#' . $attrs['id'] . '">';
+    foreach($bg_sliders as $i => $bg_slider) {
+      $bg_slider['attrs']['class'] = 'bg-slideshow bg-slide-' . ($i + 1);      
+      $output .= _volar_shortcodes_shortcode_bg_slider_item($bg_slider['attrs'], $bg_slider['text']);
+    }
+    $output .= '</div>';
+    $output .= '<div class="hs-content"><div class="hs-content-inner">' . $text . '</div></div>';
+    $output .= '</section>';
+  }
+  else {
+    $slider_id = isset($attrs['type']) ? $attrs['type'] : 'owl-hs-slider';
+    $move_attrs = 'data-top="transform: translate3d(0px, 0px, 0px)" data-top-bottom="transform: translate3d(0px, -200px, 0px)" data-anchor-target="#' . $attrs['id'] . '"';
+    $output = '<section ' . _volar_shortcodes_shortcode_attributes($attrs) . '>
+      <div id="' . $slider_id . '" class="' . $inner_class . ' owl-hs-slider owl-carousel carousel dots-over in-page-scroll" >
+        ' . $text;
+    foreach($bg_sliders as $bg_slider) {
+      $bg_slider['attrs']['class'] = 'owl-hs-slide hs-content';      
+      $output .= _volar_shortcodes_shortcode_bg_slider_item($bg_slider['attrs'], $bg_slider['text']);
+    }
+    $output .= '</div>
+    </section>';
+  }
+
+  $bg_sliders = array();
+  return $output;
+}
+
+function volar_shortcodes_shortcode_bg_slider_settings($attrs, $text) {
+  $height = array('full-screen' => t('Full Screen'), 'half-height' => t('Half Height'));
+  $form['block_height'] = array(
+    '#type' => 'select',
+    '#title' => t('Height'),
+    '#options' => $height,
+    '#default_value' => isset($attrs['block_height']) ? $attrs['block_height'] : 'half-height',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $type = array('owl-hs-slider' => t('Rotate'), 'owl-hs-slider-zoom' => t('Zoom'), 'bg-slideshow' => t('BG Slideshow with Static Content'));
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Animation'),
+    '#options' => $type,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : 'owl-hs-slider',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>'
+  );
+  $form['description'] = array(
+    '#type' => 'item',
+    '#markup' => t('Add your content inside THIS shortcode, and BG Slider Items which will be used for creating background images'),
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : 'owl-hs-slider',
+    '#attributes' => array('class' => array('form-control')),
+    '#states' => array('visible' => array(
+      'select[name="type"]' => array('value' => 'bg-slideshow'),
+    )),
+  );
+  return $form;
+}
+
+function _volar_shortcodes_shortcode_bg_slider_item($attrs, $text) {
+  if (isset($attrs['fid']) && !empty($attrs['fid'])) {
+    $attrs['style_background-image'] = $attrs['fid'];
+  }
+
+  $attrs['class'] .= isset($attrs['overlay']) && $attrs['overlay'] ? ' ' . $attrs['overlay'] : '';
+
+  $file = isset($attrs['bg_fid']) && !empty($attrs['bg_fid']) ? file_load($attrs['bg_fid']) : '';
+  $video_attr = '';
+  if (isset($file->uri)) {
+    $filepath = file_create_url($file->uri);
+    $type = substr($filepath, strrpos($filepath, '.') + 1);
+    $filename = substr($filepath, 0, strrpos($filepath, '.') );
+    $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+    $poster = '';
+    if (isset($file->uri)) {
+      unset($attrs['style_background-image']);
+      $filepath = file_create_url($file->uri);
+      $poster = ', poster: ' . substr($filepath, 0, strrpos($filepath, '.'));
+    }
+    $video_attr = 'data-vide-bg="' . $type . ': ' . $filename . $poster . '" data-vide-options="position: 50% 50%"';
+    $attrs['class'] .= ' video-background';
+  }
+  $text = !empty($text) ? '<div class="hs-content-inner">' . $text . '</div>' : '';
+  $output = '<div ' . _volar_shortcodes_shortcode_attributes($attrs) . ' ' . $video_attr . '>
+    ' . $text . '
+  </div>';
+ 
+  return $output;
+}
+
+function volar_shortcodes_shortcode_bg_slider_item($attrs, $text) {
+  global $bg_sliders;
+  $bg_sliders[] = array('attrs' => $attrs, 'text' => $text);
+  return '';
+}
+
+function volar_shortcodes_shortcode_bg_slider_item_settings($attrs, $text) {
+  $filename = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid'])->uri :'';
+  $image = $filename ? theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $filename)) : '';
+  $form['fid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Image'),
+    '#default_value' => isset($attrs['fid']) ? $attrs['fid'] : '',
+    '#attributes' => array('class' => array('image-media-upload hidden')),
+    '#field_suffix' => '<div class = "preview-image">' . $image . '</div><a href = "#" class = "media-upload button">' . t('Upload Image') .'</a><a href = "#" class = "media-remove button">' . t('Remove Image') .'</a>',
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $filename = isset($attrs['bg_fid']) && !empty($attrs['bg_fid']) ? file_load($attrs['bg_fid'])->uri :'';
+  $image = $filename ? theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $filename, 'alt' => $filename)) : '';
+  $form['bg_fid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Background Video'),
+    '#default_value' => isset($attrs['bg_fid']) ? $attrs['bg_fid'] : '',
+    '#attributes' => array('class' => array('image-media-upload hidden')),
+    '#field_suffix' => '<div class = "preview-image">' . $image . '</div><a href = "#" class = "media-upload button">' . t('Upload Video') .'</a><a href = "#" class = "media-remove button">' . t('Remove Video') .'</a>',
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  $overlays = array('' => t(' - None - '), 'overlay' => t('Dark'));
+  $form['overlay'] = array(
+    '#type' => 'select',
+    '#title' => t('Overlay'),
+    '#options' => $overlays,
+    '#default_value' => isset($attrs['overlay']) ? $attrs['overlay'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+   '#suffix' => '</div></div>',
+  );
+  return $form;
+}

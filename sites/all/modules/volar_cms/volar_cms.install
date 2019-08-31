@@ -1,0 +1,10 @@
+<?php
+
+function volar_cms_install() {  
+  // Import Layout Builder Settings
+  $exists = db_select('variable', 'v')->fields('v', array('name'))->condition('v.name', 'nikadevs_cms_layout_volar_sub')->execute()->fetchField();
+  if(!$exists) {
+    $value = file_get_contents(drupal_get_path('module', 'volar_cms') . '/volar_layoutbuilder_import/volar_cms_layout_builder_settings.php');
+    db_insert('variable')->fields(array('value' => $value, 'name' => 'nikadevs_cms_layout_volar_sub'))->execute();
+  }
+}
